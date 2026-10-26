@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color: #1e1e1e;
+    background-color: #fbfbfa;
+  }
+
+  h1, h2, h3, .font-serif {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+
+  .font-mono {
+    font-family: 'Space Mono', monospace;
+  }
+}
+
+/* Tactile 3D Bookshelf Effects */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+/* Spine book texture highlights */
+.spine-crease {
+  background: linear-gradient(
+    90deg,
+    rgba(0,0,0,0.22) 0%,
+    rgba(255,255,255,0.25) 8%,
+    rgba(0,0,0,0.08) 18%,
+    rgba(255,255,255,0.05) 50%,
+    rgba(0,0,0,0.18) 95%,
+    rgba(0,0,0,0.35) 100%
+  );
+}
+
+.book-shadow-hover {
+  filter: drop-shadow(0 14px 20px rgba(28, 25, 23, 0.16));
+}
+
+.shelf-ledge {
+  background: linear-gradient(180deg, #EFECE6 0%, #E5E1D8 60%, #D8D2C7 100%);
+  box-shadow: 
+    0 -1px 0 rgba(255,255,255,0.8),
+    0 4px 12px rgba(44, 38, 30, 0.08),
+    0 16px 24px -8px rgba(44, 38, 30, 0.06);
+}
+
+.shelf-shadow {
+  background: radial-gradient(ellipse at center, rgba(30, 26, 20, 0.12) 0%, rgba(30, 26, 20, 0) 70%);
+}
+
+/* Paper grain feel */
+.paper-pattern {
+  background-color: #faf8f5;
+  background-image: radial-gradient(#d6cebe 0.75px, transparent 0.75px);
+  background-size: 12px 12px;
+}
+
+/* Smooth custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f5f3ee;
+}
+::-webkit-scrollbar-thumb {
+  background: #d6cebe;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b5aa96;
+}

@@ -1,0 +1,6 @@
+{
+  "name": "The Six — Private Book Club",
+  "description": "An intimate six-member reading collective with interactive tactile bookshelf, member profiles, and curated literary salon.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
