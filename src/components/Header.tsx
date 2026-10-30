@@ -1,7 +1,7 @@
 import React from 'react';
 import { Member, AuthUser } from '../types';
 import { Language, TRANSLATIONS } from '../translations';
-import { Globe, Lock, ShieldCheck, UserCheck, User } from 'lucide-react';
+import { Globe, Lock, ShieldCheck, UserCheck, User, CloudCheck, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface HeaderProps {
   currentView: 'home' | 'members' | 'book-of-month';
@@ -16,6 +16,8 @@ interface HeaderProps {
   selectedMemberId: string;
   onSelectMember: (id: string) => void;
   brandName?: string;
+  syncStatus?: 'synced' | 'syncing' | 'error';
+  onManualSync?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +30,8 @@ export const Header: React.FC<HeaderProps> = ({
   language,
   onToggleLanguage,
   brandName,
+  syncStatus = 'synced',
+  onManualSync,
 }) => {
   const t = TRANSLATIONS[language];
 
@@ -77,6 +81,37 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Zone 3: Authentication, Language toggle & Primary Action */}
           <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+            {/* Cloud Sync Status Indicator */}
+            {syncStatus === 'syncing' ? (
+              <div 
+                className="flex items-center gap-1.5 px-2 py-1 text-[11px] font-mono text-amber-800 bg-amber-50/80 rounded-lg border border-amber-200"
+                title={language === 'en' ? 'Synchronizing with salon backend...' : 'Salon sunucusuyla eşitleniyor...'}
+              >
+                <RefreshCw className="w-3 h-3 animate-spin text-amber-700" />
+                <span className="hidden md:inline">{language === 'en' ? 'Saving...' : 'Kaydediliyor...'}</span>
+              </div>
+            ) : syncStatus === 'error' ? (
+              <button 
+                type="button"
+                onClick={onManualSync}
+                className="flex items-center gap-1.5 px-2 py-1 text-[11px] font-mono text-[#BF360C] bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-colors cursor-pointer"
+                title={language === 'en' ? 'Sync error. Click to retry.' : 'Eşitleme hatası. Tekrar denemek için tıklayın.'}
+              >
+                <AlertCircle className="w-3 h-3 text-[#BF360C]" />
+                <span className="hidden md:inline">{language === 'en' ? 'Retry' : 'Tekrar dene'}</span>
+              </button>
+            ) : (
+              <button 
+                type="button"
+                onClick={onManualSync}
+                className="hidden md:flex items-center gap-1.5 px-2 py-1 text-[11px] font-mono text-stone-500 hover:text-stone-800 rounded-lg transition-colors cursor-pointer"
+                title={language === 'en' ? 'Salon data synchronized across sessions. Click to check for updates.' : 'Salon verileri oturumlar arasında güncel. Yenilemek için tıklayın.'}
+              >
+                <CloudCheck className="w-3.5 h-3.5 text-stone-400" />
+                <span className="text-[10px] uppercase tracking-wider">{language === 'en' ? 'Synced' : 'Eşit'}</span>
+              </button>
+            )}
+
             {/* User / Member / Admin Login Button */}
             <button
               type="button"

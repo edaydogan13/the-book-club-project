@@ -1300,19 +1300,29 @@ export const INITIAL_REFERRALS: ReferralApplication[] = [];
 export const INITIAL_SITE_CONTENT: SiteContent = {
   brandName: 'Books & Friends',
   tagline: 'Private Book Club',
-  heroCities: 'ISTANBUL · DUBAI · NYC · SAN FRANCISCO · EST. NOV 2025',
-  heroLine1: 'Six readers.',
-  heroAccent: 'One book',
-  heroLine2: 'a month.',
-  heroSubtitle: 'We are a small circle of friends who read one book every month together, prioritizing depth over velocity.',
-  clubStartDate: 'November 2025',
+  heroCities: 'İSTANBUL · DUBAİ · NYC · SAN FRANCISCO · KASIM 2025',
+  heroCitiesEn: 'ISTANBUL · DUBAI · NYC · SAN FRANCISCO · EST. NOV 2025',
+  heroLine1: 'Altı okur.',
+  heroLine1En: 'Six readers.',
+  heroAccent: 'Ayda bir',
+  heroAccentEn: 'One book',
+  heroLine2: 'kitap.',
+  heroLine2En: 'a month.',
+  heroSubtitle: 'Her ay birlikte tek bir kitap okuyan, hız yerine derinliği seçen küçük bir arkadaş çevresiyiz.',
+  heroSubtitleEn: 'We are a small circle of friends who read one book every month together, prioritizing depth over velocity.',
+  clubStartDate: 'Kasım 2025',
   statBooksCount: '10',
-  statBooksLabel: 'books read together',
-  statPagesCount: '2,884',
-  statPagesLabel: 'pages turned',
+  statBooksLabel: 'birlikte okunan kitap',
+  statBooksLabelEn: 'books read together',
+  statPagesCount: '2.884',
+  statPagesCountEn: '2,884',
+  statPagesLabel: 'çevrilen sayfa',
+  statPagesLabelEn: 'pages turned',
   statMembersCount: '6',
-  statMembersLabel: 'members',
-  announcement: 'Start date of the book club is November 2025 · Currently reading Trevor Noah: Suçlu Doğmak',
+  statMembersLabel: 'üye',
+  statMembersLabelEn: 'members',
+  announcement: 'Kitap kulübümüz Kasım 2025’te başladı · Şu an okunan kitap: Trevor Noah: Suçlu Doğmak',
+  announcementEn: 'Start date of the book club is November 2025 · Currently reading Trevor Noah: Born a Crime',
   showAnnouncement: false,
 };
 
@@ -1353,117 +1363,115 @@ export const GENRE_MAP_TR: Record<string, string> = {
   'Philosophical Fiction & Parallel Realities': 'Felsefi Kurgu & Paralel Evrenler',
 };
 
-export const getBookTitle = (book: Book, lang: Language): string => {
+export const getBookTitle = (book: Book | null | undefined, lang: Language): string => {
+  if (!book) return '';
   if (lang === 'en') {
-    if (book.titleEn && book.titleEn !== book.title) return book.titleEn;
-    const initial = INITIAL_BOOKS.find(b => b.id === book.id) || EDA_EXTRA_BOOKS.find(b => b.id === book.id);
-    if (initial?.titleEn) return initial.titleEn;
-    return book.titleEn || book.originalTitle || book.title;
+    return book.titleEn || book.title || book.originalTitle || '';
   }
-  const initial = INITIAL_BOOKS.find(b => b.id === book.id) || EDA_EXTRA_BOOKS.find(b => b.id === book.id);
-  if (initial?.title) return initial.title;
-  return book.title;
+  return book.title || book.titleEn || '';
 };
 
-export const getBookCover = (book: Book, lang: Language): string => {
+export const getBookCover = (book: Book | null | undefined, lang: Language): string => {
+  if (!book) return '';
   if (lang === 'en') {
     return book.coverImageUrlEn || book.coverImageUrl || '';
   }
   return book.coverImageUrlTr || book.coverImageUrl || '';
 };
 
-export const getBookSynopsis = (book: Book, lang: Language): string => {
+export const getBookSynopsis = (book: Book | null | undefined, lang: Language): string => {
+  if (!book) return '';
   if (lang === 'en') {
-    if (book.synopsisEn && book.synopsisEn !== book.synopsis) return book.synopsisEn;
-    const initial = INITIAL_BOOKS.find(b => b.id === book.id) || EDA_EXTRA_BOOKS.find(b => b.id === book.id);
-    if (initial?.synopsisEn) return initial.synopsisEn;
-    return book.synopsisEn || book.synopsis;
+    return book.synopsisEn || book.synopsis || '';
   }
-  const initial = INITIAL_BOOKS.find(b => b.id === book.id) || EDA_EXTRA_BOOKS.find(b => b.id === book.id);
-  if (initial?.synopsis) return initial.synopsis;
-  return book.synopsis;
+  return book.synopsis || book.synopsisEn || '';
 };
 
-export const getBookQuote = (book: Book, lang: Language): string => {
+export const getBookQuote = (book: Book | null | undefined, lang: Language): string => {
+  if (!book) return '';
   if (lang === 'en') {
-    if (book.favoriteQuoteEn && book.favoriteQuoteEn !== book.favoriteQuote) return book.favoriteQuoteEn;
-    const initial = INITIAL_BOOKS.find(b => b.id === book.id) || EDA_EXTRA_BOOKS.find(b => b.id === book.id);
-    if (initial?.favoriteQuoteEn) return initial.favoriteQuoteEn;
     return book.favoriteQuoteEn || book.favoriteQuote || '';
   }
-  const initial = INITIAL_BOOKS.find(b => b.id === book.id) || EDA_EXTRA_BOOKS.find(b => b.id === book.id);
-  if (initial?.favoriteQuote) return initial.favoriteQuote;
-  return book.favoriteQuote || '';
+  return book.favoriteQuote || book.favoriteQuoteEn || '';
 };
 
-export const getBookGenre = (book: Book, lang: Language): string => {
+export const getBookGenre = (book: Book | null | undefined, lang: Language): string => {
+  if (!book) return '';
   if (lang === 'en') {
-    if (book.genreEn && book.genreEn !== book.genre) return book.genreEn;
-    if (GENRE_MAP_EN[book.genre]) return GENRE_MAP_EN[book.genre];
-    const initial = INITIAL_BOOKS.find(b => b.id === book.id) || EDA_EXTRA_BOOKS.find(b => b.id === book.id);
-    if (initial?.genreEn) return initial.genreEn;
-    return book.genreEn || book.genre;
+    if (book.genreEn) return book.genreEn;
+    if (book.genre && GENRE_MAP_EN[book.genre]) return GENRE_MAP_EN[book.genre];
+    return book.genre || '';
   }
-  if (GENRE_MAP_TR[book.genre]) return GENRE_MAP_TR[book.genre];
-  const initial = INITIAL_BOOKS.find(b => b.id === book.id) || EDA_EXTRA_BOOKS.find(b => b.id === book.id);
-  if (initial?.genre) return initial.genre;
-  return book.genre;
+  if (book.genre) {
+    if (GENRE_MAP_TR[book.genre]) return GENRE_MAP_TR[book.genre];
+    return book.genre;
+  }
+  if (book.genreEn && GENRE_MAP_TR[book.genreEn]) return GENRE_MAP_TR[book.genreEn];
+  return book.genre || book.genreEn || '';
 };
 
-export const getBookMonth = (book: Book, lang: Language): string => {
+export const getBookMonth = (book: Book | null | undefined, lang: Language): string => {
+  if (!book) return '';
   if (lang === 'en') {
-    return book.monthEn || book.month;
+    return book.monthEn || book.month || '';
   }
-  return book.monthTr || book.month;
+  return book.monthTr || book.month || '';
 };
 
-export const getMemberRole = (member: Member, lang: Language): string => {
+export const getMemberRole = (member: Member | null | undefined, lang: Language): string => {
+  if (!member) return '';
   if (lang === 'en') {
-    return member.roleEn || member.role;
+    return member.roleEn || member.role || '';
   }
-  return member.role;
+  return member.role || member.roleEn || '';
 };
 
-export const getMemberBio = (member: Member, lang: Language): string => {
+export const getMemberBio = (member: Member | null | undefined, lang: Language): string => {
+  if (!member) return '';
   if (lang === 'en') {
-    return member.bioEn || member.bio;
+    return member.bioEn || member.bio || '';
   }
-  return member.bio;
+  return member.bio || member.bioEn || '';
 };
 
-export const getMemberQuote = (member: Member, lang: Language): string => {
+export const getMemberQuote = (member: Member | null | undefined, lang: Language): string => {
+  if (!member) return '';
   if (lang === 'en') {
-    return member.favoriteQuoteEn || member.favoriteQuote;
+    return member.favoriteQuoteEn || member.favoriteQuote || '';
   }
-  return member.favoriteQuote;
+  return member.favoriteQuote || member.favoriteQuoteEn || '';
 };
 
-export const getMemberGoal = (member: Member, lang: Language): string => {
+export const getMemberGoal = (member: Member | null | undefined, lang: Language): string => {
+  if (!member) return '';
   if (lang === 'en') {
-    return member.readingGoal2026En || member.readingGoal2026;
+    return member.readingGoal2026En || member.readingGoal2026 || '';
   }
-  return member.readingGoal2026;
+  return member.readingGoal2026 || member.readingGoal2026En || '';
 };
 
-export const getMemberCurrentlyReading = (member: Member, lang: Language): string => {
+export const getMemberCurrentlyReading = (member: Member | null | undefined, lang: Language): string => {
+  if (!member) return '';
   if (lang === 'en') {
-    return member.currentlyReadingEn || member.currentlyReading;
+    return member.currentlyReadingEn || member.currentlyReading || '';
   }
-  return member.currentlyReading;
+  return member.currentlyReading || member.currentlyReadingEn || '';
 };
 
-export const getCommentText = (comment: { text: string; textEn?: string }, lang: Language): string => {
+export const getCommentText = (comment: { text: string; textEn?: string } | null | undefined, lang: Language): string => {
+  if (!comment) return '';
   if (lang === 'en') {
-    return comment.textEn || comment.text;
+    return comment.textEn || comment.text || '';
   }
-  return comment.text;
+  return comment.text || comment.textEn || '';
 };
 
-export const getCommentQuote = (comment: { favoriteQuote?: string; favoriteQuoteEn?: string }, lang: Language): string | undefined => {
+export const getCommentQuote = (comment: { favoriteQuote?: string; favoriteQuoteEn?: string } | null | undefined, lang: Language): string | undefined => {
+  if (!comment) return undefined;
   if (lang === 'en') {
     return comment.favoriteQuoteEn || comment.favoriteQuote;
   }
-  return comment.favoriteQuote;
+  return comment.favoriteQuote || comment.favoriteQuoteEn;
 };
 
 export const getVideoTitle = (video: { title: string; titleEn?: string } | undefined, defaultBookTitle: string, lang: Language): string => {
@@ -1491,4 +1499,73 @@ export const getBookBinding = (binding: string | undefined, lang: Language): str
     if (binding === 'Collector Edition') return 'Özel Koleksiyon Baskısı';
   }
   return binding;
+};
+
+export const normalizeBook = (book: Partial<Book> & { id: string }): Book => {
+  const initialMatch = INITIAL_BOOKS.find(ib => ib.id === book.id) || EDA_EXTRA_BOOKS.find(eb => eb.id === book.id);
+  const base: Book = initialMatch ? { ...initialMatch } : {
+    id: book.id,
+    title: book.title || 'Untitled',
+    author: book.author || 'Unknown',
+    year: 2025,
+    pages: 300,
+    genre: 'Edebi Kurgu',
+    genreEn: 'Literary Fiction',
+    synopsis: '',
+    synopsisEn: '',
+    suggesterId: 'eda-aydogan',
+    suggesterName: 'Eda Aydoğan',
+    month: 'Ekim 2026',
+    monthEn: 'October 2026',
+    monthTr: 'Ekim 2026',
+    coverColor: '#2C3E50',
+    accentColor: '#E67E22',
+    spineTextColor: '#FFFFFF',
+    rating: 5,
+    themes: ['Literature'],
+    comments: [],
+    buyLinks: {
+      tr: { store: 'Amazon TR', url: `https://www.amazon.com.tr/s?k=${encodeURIComponent(book.title || '')}&tag=${AFFILIATE_TAG_TR}`, language: 'TR' as const, affiliateTag: AFFILIATE_TAG_TR },
+      en: { store: 'Amazon', url: `https://www.amazon.com/s?k=${encodeURIComponent(book.titleEn || book.title || '')}&tag=${AFFILIATE_TAG_EN}`, language: 'EN' as const, affiliateTag: AFFILIATE_TAG_EN },
+    },
+    physicalDetails: {
+      binding: 'Paperback' as const,
+      thicknessMm: 22,
+      format: '13.5 × 21 cm',
+    },
+  };
+
+  return {
+    ...base,
+    ...book,
+    title: book.title || base.title,
+    titleEn: book.titleEn || base.titleEn,
+    genre: book.genre || base.genre,
+    genreEn: book.genreEn || base.genreEn,
+    synopsis: book.synopsis || base.synopsis,
+    synopsisEn: book.synopsisEn || base.synopsisEn,
+    favoriteQuote: book.favoriteQuote !== undefined ? book.favoriteQuote : base.favoriteQuote,
+    favoriteQuoteEn: book.favoriteQuoteEn !== undefined ? book.favoriteQuoteEn : base.favoriteQuoteEn,
+    coverImageUrl: book.coverImageUrl !== undefined ? book.coverImageUrl : base.coverImageUrl,
+    coverImageUrlTr: book.coverImageUrlTr || base.coverImageUrlTr,
+    coverImageUrlEn: book.coverImageUrlEn || base.coverImageUrlEn,
+    monthEn: book.monthEn || base.monthEn,
+    monthTr: book.monthTr || base.monthTr,
+    videoReview: book.videoReview !== undefined ? book.videoReview : base.videoReview,
+    comments: (book.comments && book.comments.length > 0) ? book.comments : (base.comments || []),
+    buyLinks: {
+      tr: book.buyLinks?.tr || base.buyLinks?.tr || { store: 'Amazon TR', url: '#', language: 'TR' as const, affiliateTag: AFFILIATE_TAG_TR },
+      en: book.buyLinks?.en || base.buyLinks?.en || { store: 'Amazon', url: '#', language: 'EN' as const, affiliateTag: AFFILIATE_TAG_EN },
+    },
+    physicalDetails: {
+      binding: book.physicalDetails?.binding || base.physicalDetails?.binding || 'Paperback',
+      thicknessMm: book.physicalDetails?.thicknessMm || base.physicalDetails?.thicknessMm || 22,
+      format: book.physicalDetails?.format || base.physicalDetails?.format || '13.5 × 21 cm',
+    },
+  };
+};
+
+export const normalizeBooks = (bookList: Book[]): Book[] => {
+  if (!Array.isArray(bookList) || bookList.length === 0) return INITIAL_BOOKS;
+  return bookList.map(b => normalizeBook(b));
 };

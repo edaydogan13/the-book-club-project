@@ -14,6 +14,7 @@ import {
   getVideoNotes,
   getBookBinding
 } from '../data/initialData';
+import { translateTextSync, translateTextWithAI } from '../utils/translator';
 import { 
   X, 
   ExternalLink, 
@@ -26,7 +27,8 @@ import {
   Quote, 
   Play,
   Edit3,
-  ShieldCheck
+  ShieldCheck,
+  Trash2
 } from 'lucide-react';
 
 interface BookDetailModalProps {
@@ -40,6 +42,8 @@ interface BookDetailModalProps {
   initialOpenVideoUpload?: boolean;
   onEditBook?: (book: Book) => void;
   onSetBookOfMonth?: (bookId: string) => void;
+  onRemoveFromMemberShelf?: (bookId: string) => void;
+  memberShelfOwnerName?: string;
 }
 
 export const BookDetailModal: React.FC<BookDetailModalProps> = ({
@@ -53,6 +57,8 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
   initialOpenVideoUpload = false,
   onEditBook,
   onSetBookOfMonth,
+  onRemoveFromMemberShelf,
+  memberShelfOwnerName,
 }) => {
   if (!book) return null;
 
@@ -96,11 +102,33 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
     e.preventDefault();
     if (!newCommentText.trim()) return;
 
+    const rawText = newCommentText.trim();
+    const rawQuote = newCommentQuote.trim();
+
+    let textTr = '';
+    let textEn = '';
+    let quoteTr = '';
+    let quoteEn = '';
+
+    if (language === 'en') {
+      textEn = rawText;
+      textTr = translateTextSync(rawText, 'en', 'tr');
+      quoteEn = rawQuote;
+      quoteTr = rawQuote ? translateTextSync(rawQuote, 'en', 'tr') : '';
+    } else {
+      textTr = rawText;
+      textEn = translateTextSync(rawText, 'tr', 'en');
+      quoteTr = rawQuote;
+      quoteEn = rawQuote ? translateTextSync(rawQuote, 'tr', 'en') : '';
+    }
+
     onAddComment(book.id, {
       authorName: newCommentAuthor,
-      text: newCommentText.trim(),
+      text: textTr,
+      textEn: textEn,
       rating: newCommentRating,
-      favoriteQuote: newCommentQuote.trim() || undefined,
+      favoriteQuote: quoteTr || undefined,
+      favoriteQuoteEn: quoteEn || undefined,
     });
 
     setNewCommentText('');
@@ -231,6 +259,28 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
               </div>
             )}
 
+            {onRemoveFromMemberShelf && (
+              <button
+                type="button"
+                onClick={() => {
+                  const confirmed = window.confirm(
+                    language === 'en'
+                      ? `Remove "${title}" from ${memberShelfOwnerName || 'member'}'s bookshelf?\n\n(This only removes it from this member's library; collective salon records remain intact.)`
+                      : `"${title}" kitabını ${memberShelfOwnerName || 'üye'} kitaplığından kaldırmak istiyor musunuz?\n\n(Bu işlem kitabı yalnızca bu üyenin rafından kaldırır; kulüp arşivi korunur.)`
+                  );
+                  if (confirmed) {
+                    onRemoveFromMemberShelf(book.id);
+                    onClose();
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 transition-colors shadow-xs cursor-pointer ml-1"
+                title={language === 'en' ? `Remove from ${memberShelfOwnerName || 'member'}'s bookshelf` : `Bu üyenin rafından kaldır`}
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-700" />
+                <span>{language === 'en' ? 'Remove from Shelf' : 'Raftan Kaldır'}</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={onClose}
@@ -323,7 +373,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                 <div className="w-full mt-5 bg-stone-100/80 rounded-xl p-3.5 border border-stone-200 text-xs text-stone-600 space-y-2">
                   <div className="flex justify-between">
                     <span className="text-stone-500">{t.modalBinding}</span>
-                    <span className="font-medium text-stone-900">{getBookBinding(book.physicalDetails.binding, language)}</span>
+                    <span className="font-medium text-stone-900">{getBookBinding(book.physicalDetails?.binding || 'Paperback', language)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-stone-500">{t.modalCurator}</span>
@@ -453,7 +503,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {/* Turkish Edition Buy Link */}
                     <a
-                      href={book.buyLinks.tr.url}
+                      href={book.buyLinks?.tr?.url || `https://www.amazon.com.tr/s?k=${encodeURIComponent(book.title || '')}&tag=edaydogannn-21`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group p-3 bg-white hover:bg-stone-50 border border-stone-300 hover:border-stone-800 rounded-xl transition-all shadow-xs flex flex-col justify-between"
@@ -465,20 +515,20 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                         <ExternalLink className="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-900 transition-colors" />
                       </div>
                       <div className="mt-2">
-                        <p className="text-xs font-medium text-stone-900">{book.buyLinks.tr.store}</p>
+                        <p className="text-xs font-medium text-stone-900">{book.buyLinks?.tr?.store || 'Amazon TR'}</p>
                         <p className="text-xs font-semibold text-stone-800 font-mono mt-0.5">
-                          {book.buyLinks.tr.price}
+                          {book.buyLinks?.tr?.price || ''}
                         </p>
                       </div>
                       <div className="mt-2 text-[10px] text-stone-400 font-mono flex items-center justify-between border-t border-stone-100 pt-1">
-                        <span>Tag: {book.buyLinks.tr.affiliateTag}</span>
+                        <span>Tag: {book.buyLinks?.tr?.affiliateTag || 'edaydogannn-21'}</span>
                         <span className="text-emerald-700 font-medium">{language === 'en' ? 'Buy →' : 'Satın Al →'}</span>
                       </div>
                     </a>
 
                     {/* English Edition Buy Link */}
                     <a
-                      href={book.buyLinks.en.url}
+                      href={book.buyLinks?.en?.url || `https://www.amazon.com/s?k=${encodeURIComponent(book.titleEn || book.title || '')}&tag=edaydogannn-20`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="group p-3 bg-white hover:bg-stone-50 border border-stone-300 hover:border-stone-800 rounded-xl transition-all shadow-xs flex flex-col justify-between"
@@ -490,13 +540,13 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                         <ExternalLink className="w-3.5 h-3.5 text-stone-400 group-hover:text-stone-900 transition-colors" />
                       </div>
                       <div className="mt-2">
-                        <p className="text-xs font-medium text-stone-900">{book.buyLinks.en.store}</p>
+                        <p className="text-xs font-medium text-stone-900">{book.buyLinks?.en?.store || 'Amazon'}</p>
                         <p className="text-xs font-semibold text-stone-800 font-mono mt-0.5">
-                          {book.buyLinks.en.price}
+                          {book.buyLinks?.en?.price || ''}
                         </p>
                       </div>
                       <div className="mt-2 text-[10px] text-stone-400 font-mono flex items-center justify-between border-t border-stone-100 pt-1">
-                        <span>Tag: {book.buyLinks.en.affiliateTag}</span>
+                        <span>Tag: {book.buyLinks?.en?.affiliateTag || 'edaydogannn-20'}</span>
                         <span className="text-emerald-700 font-medium">{language === 'en' ? 'Buy →' : 'Satın Al →'}</span>
                       </div>
                     </a>
@@ -520,12 +570,12 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
 
               {/* List of comments */}
               <div className="space-y-3">
-                {book.comments.length === 0 ? (
+                {(!book.comments || book.comments.length === 0) ? (
                   <p className="text-sm text-stone-500 italic py-6 text-center">
                     {language === 'en' ? 'No reflections recorded yet. Be the first to share your perspective!' : 'Henüz bir yorum kaydedilmedi. İlk görüşü siz paylaşın!'}
                   </p>
                 ) : (
-                  book.comments.map((comment) => (
+                  (book.comments || []).map((comment) => (
                     <div 
                       key={comment.id}
                       className="p-4 bg-white border border-stone-200 rounded-xl shadow-xs"

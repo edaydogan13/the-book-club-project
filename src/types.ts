@@ -140,18 +140,28 @@ export interface SiteContent {
   brandName: string;
   tagline: string;
   heroCities: string;
+  heroCitiesEn?: string;
   heroLine1: string;
+  heroLine1En?: string;
   heroAccent: string;
+  heroAccentEn?: string;
   heroLine2: string;
+  heroLine2En?: string;
   heroSubtitle: string;
+  heroSubtitleEn?: string;
   clubStartDate: string;
   statBooksCount: string;
   statBooksLabel: string;
+  statBooksLabelEn?: string;
   statPagesCount: string;
+  statPagesCountEn?: string;
   statPagesLabel: string;
+  statPagesLabelEn?: string;
   statMembersCount: string;
   statMembersLabel: string;
+  statMembersLabelEn?: string;
   announcement?: string;
+  announcementEn?: string;
   showAnnouncement?: boolean;
 }
 

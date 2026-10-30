@@ -3,15 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Books & Friends — Private Book Club</title>
-    <meta name="description" content="Books & Friends — An intimate six-member reading collective with interactive tactile bookshelf, member profiles, and literary salon." />
-    <meta property="og:title" content="Books & Friends — Private Book Club" />
-    <meta property="og:description" content="Books & Friends — An intimate six-member reading collective with interactive tactile bookshelf, member profiles, and literary salon." />
+    <title>The Six — Private Book Club</title>
+    <meta name="description" content="An intimate six-member reading collective with interactive tactile bookshelf, member profiles, and curated literary salon." />
+    <meta property="og:title" content="The Six — Private Book Club" />
+    <meta property="og:description" content="An intimate six-member reading collective with interactive tactile bookshelf, member profiles, and curated literary salon." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script>
+      window.addEventListener('error', function(e) {
+        setTimeout(function() {
+          var root = document.getElementById('root');
+          if (root && (!root.innerHTML || root.innerHTML.trim() === '')) {
+            root.innerHTML = '<div style="min-height:100vh;display:flex;align-items:center;justify-content:center;background:#FBFBFA;font-family:sans-serif;padding:24px;color:#1E1E1E;"><div style="max-width:440px;width:100%;background:#ffffff;border:1px solid #E7E5E4;border-radius:20px;padding:32px;text-align:center;box-shadow:0 12px 32px rgba(0,0,0,0.06);"><h2 style="font-family:serif;font-size:26px;font-weight:600;margin:0 0 8px 0;color:#1C1917;">The Six — Reading Salon</h2><p style="color:#78716C;font-size:14px;margin:0 0 24px 0;line-height:1.5;">Welcome to The Six. If this screen does not transition immediately, click below to load the reading room.</p><button onclick="try{localStorage.clear()}catch(e){}window.location.reload();" style="padding:12px 24px;background:#1C1917;color:#FAFAF9;border:none;border-radius:12px;cursor:pointer;font-weight:600;font-size:14px;width:100%;transition:background 0.2s;">Enter Salon &rarr;</button></div></div>';
+          }
+        }, 1200);
+      });
+    </script>
   </head>
   <body class="bg-[#FBFBFA] text-[#1E1E1E] antialiased selection:bg-[#E8E2D5] selection:text-[#1E1E1E]">
     <div id="root"></div>

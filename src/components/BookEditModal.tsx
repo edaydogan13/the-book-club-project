@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Book, Member } from '../types';
 import { Language, TRANSLATIONS } from '../translations';
-import { X, Save, Trash2, Star, BookOpen, Image as ImageIcon, Sparkles, Check } from 'lucide-react';
+import { X, Save, Trash2, Star, BookOpen, Image as ImageIcon, Sparkles, Check, Globe } from 'lucide-react';
+import { translateTextSync, translateTextWithAI } from '../utils/translator';
 
 interface BookEditModalProps {
   isOpen: boolean;
@@ -15,16 +16,18 @@ interface BookEditModalProps {
 
 const PRESET_COVERS = [
   { label: 'Suçlu Doğmak (Trevor Noah)', url: '/covers/suclu-dogmak.jpg' },
+  { label: 'Born a Crime (English)', url: '/covers/born-a-crime.jpg' },
   { label: 'Duvar (Marlen Haushofer)', url: '/covers/duvar.jpg' },
+  { label: 'The Wall (English)', url: '/covers/the-wall.jpg' },
   { label: 'Venedik\'te Ölüm (Thomas Mann)', url: '/covers/venedikte-olum.jpg' },
+  { label: 'Death in Venice (English)', url: '/covers/death-in-venice.jpg' },
   { label: 'Zaman Sığınağı (Georgi Gospodinov)', url: '/covers/zaman-siginagi.jpg' },
-  { label: 'Gece Yarısı Kütüphanesi (Matt Haig)', url: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?auto=format&fit=crop&w=600&q=80' },
-  { label: 'Algı Kapıları (Aldous Huxley)', url: 'https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=600&q=80' },
-  { label: 'Naval Ravikant (Eric Jorgenson)', url: 'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&w=600&q=80' },
-  { label: 'Beşinci Anlaşma (Don Miguel Ruiz)', url: 'https://images.unsplash.com/photo-1541963463532-d68292c34b19?auto=format&fit=crop&w=600&q=80' },
-  { label: 'Designing Your Life (Evans & Burnett)', url: 'https://images.unsplash.com/photo-1532012164546-f432f2e3edd4?auto=format&fit=crop&w=600&q=80' },
-  { label: 'Vitrinde Yaşamak (Nurdan Gürbilek)', url: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=600&q=80' },
-  { label: 'İstanbul (Orhan Pamuk)', url: 'https://images.unsplash.com/photo-1476275466078-4007374efbbe?auto=format&fit=crop&w=600&q=80' },
+  { label: 'Time Shelter (English)', url: '/covers/time-shelter.jpg' },
+  { label: 'Ermiş (Halil Cibran)', url: '/covers/ermis.jpg' },
+  { label: 'Ritüellerin Yok Oluşuna Dair', url: '/covers/rituellerin-yok-olusu.jpg' },
+  { label: 'Nefaset Lokantası (Tuğba Doğan)', url: '/covers/nefaset-lokantasi.jpg' },
+  { label: 'Kızıl Veba (Jack London)', url: '/covers/kizil-veba.jpg' },
+  { label: 'Gece Yarısı Kütüphanesi (Matt Haig)', url: '/covers/gece-yarisi-kutuphanesi.jpg' },
 ];
 
 export const BookEditModal: React.FC<BookEditModalProps> = ({
@@ -38,40 +41,59 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
 }) => {
   const isNew = !bookToEdit;
 
-  const [title, setTitle] = useState('');
+  // Language tab inside modal: 'tr' | 'en'
+  const [activeTab, setActiveTab] = useState<'tr' | 'en'>(language === 'en' ? 'en' : 'tr');
+
+  // Bilingual fields
+  const [titleTr, setTitleTr] = useState('');
+  const [titleEn, setTitleEn] = useState('');
+  const [genreTr, setGenreTr] = useState('');
+  const [genreEn, setGenreEn] = useState('');
+  const [synopsisTr, setSynopsisTr] = useState('');
+  const [synopsisEn, setSynopsisEn] = useState('');
+  const [favoriteQuoteTr, setFavoriteQuoteTr] = useState('');
+  const [favoriteQuoteEn, setFavoriteQuoteEn] = useState('');
+  const [coverImageUrlTr, setCoverImageUrlTr] = useState('');
+  const [coverImageUrlEn, setCoverImageUrlEn] = useState('');
+
+  // Universal metadata
   const [originalTitle, setOriginalTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [year, setYear] = useState(2025);
   const [pages, setPages] = useState(300);
-  const [genre, setGenre] = useState('');
-  const [synopsis, setSynopsis] = useState('');
-  const [favoriteQuote, setFavoriteQuote] = useState('');
   const [suggesterName, setSuggesterName] = useState('');
   const [suggesterId, setSuggesterId] = useState('');
   const [month, setMonth] = useState('October 2026');
   const [isBookOfMonth, setIsBookOfMonth] = useState(false);
-  const [coverImageUrl, setCoverImageUrl] = useState('');
   const [coverColor, setCoverColor] = useState('#2C3E50');
   const [accentColor, setAccentColor] = useState('#E67E22');
   const [spineTextColor, setSpineTextColor] = useState('#FFFFFF');
   const [rating, setRating] = useState(5);
   const [themesStr, setThemesStr] = useState('');
+  const [isTranslating, setIsTranslating] = useState(false);
 
   useEffect(() => {
+    setActiveTab(language === 'en' ? 'en' : 'tr');
     if (bookToEdit) {
-      setTitle(bookToEdit.title);
+      setTitleTr(bookToEdit.title || '');
+      setTitleEn(bookToEdit.titleEn || bookToEdit.originalTitle || bookToEdit.title || '');
+      setGenreTr(bookToEdit.genre || '');
+      setGenreEn(bookToEdit.genreEn || bookToEdit.genre || '');
+      setSynopsisTr(bookToEdit.synopsis || '');
+      setSynopsisEn(bookToEdit.synopsisEn || bookToEdit.synopsis || '');
+      setFavoriteQuoteTr(bookToEdit.favoriteQuote || '');
+      setFavoriteQuoteEn(bookToEdit.favoriteQuoteEn || bookToEdit.favoriteQuote || '');
+      setCoverImageUrlTr(bookToEdit.coverImageUrlTr || bookToEdit.coverImageUrl || '');
+      setCoverImageUrlEn(bookToEdit.coverImageUrlEn || bookToEdit.coverImageUrl || '');
+
       setOriginalTitle(bookToEdit.originalTitle || '');
       setAuthor(bookToEdit.author);
       setYear(bookToEdit.year);
       setPages(bookToEdit.pages);
-      setGenre(bookToEdit.genre);
-      setSynopsis(bookToEdit.synopsis);
-      setFavoriteQuote(bookToEdit.favoriteQuote || '');
       setSuggesterName(bookToEdit.suggesterName);
       setSuggesterId(bookToEdit.suggesterId);
       setMonth(bookToEdit.month);
       setIsBookOfMonth(!!bookToEdit.isBookOfMonth);
-      setCoverImageUrl(bookToEdit.coverImageUrl || '');
       setCoverColor(bookToEdit.coverColor || '#2C3E50');
       setAccentColor(bookToEdit.accentColor || '#E67E22');
       setSpineTextColor(bookToEdit.spineTextColor || '#FFFFFF');
@@ -79,26 +101,32 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
       setThemesStr((bookToEdit.themes || []).join(', '));
     } else {
       // New book defaults
-      setTitle('');
+      setTitleTr('');
+      setTitleEn('');
+      setGenreTr('Edebi Kurgu');
+      setGenreEn('Literary Fiction');
+      setSynopsisTr('');
+      setSynopsisEn('');
+      setFavoriteQuoteTr('');
+      setFavoriteQuoteEn('');
+      setCoverImageUrlTr('');
+      setCoverImageUrlEn('');
+
       setOriginalTitle('');
       setAuthor('');
       setYear(2025);
       setPages(320);
-      setGenre('Literary Fiction');
-      setSynopsis('');
-      setFavoriteQuote('');
       setSuggesterName(members[0]?.name || 'Eda Aydoğan');
       setSuggesterId(members[0]?.id || 'eda-aydogan');
-      setMonth('November 2026');
+      setMonth(language === 'en' ? 'November 2026' : 'Kasım 2026');
       setIsBookOfMonth(false);
-      setCoverImageUrl('');
       setCoverColor('#1A365D');
       setAccentColor('#F6AD55');
       setSpineTextColor('#FFFFFF');
       setRating(5);
       setThemesStr('Memory, Identity, Society');
     }
-  }, [bookToEdit, isOpen, members]);
+  }, [bookToEdit, isOpen, members, language]);
 
   if (!isOpen) return null;
 
@@ -111,9 +139,72 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
     }
   };
 
+  // 1-Click Auto-Translate from one language to the other
+  const handleAutoTranslate = async (direction: 'tr-to-en' | 'en-to-tr') => {
+    setIsTranslating(true);
+    try {
+      if (direction === 'tr-to-en') {
+        const enTitle = translateTextSync(titleTr, 'tr', 'en');
+        const enGenre = translateTextSync(genreTr, 'tr', 'en');
+        const enSynopsis = translateTextSync(synopsisTr, 'tr', 'en');
+        const enQuote = favoriteQuoteTr ? translateTextSync(favoriteQuoteTr, 'tr', 'en') : '';
+
+        setTitleEn(enTitle);
+        setGenreEn(enGenre);
+        setSynopsisEn(enSynopsis);
+        setFavoriteQuoteEn(enQuote);
+
+        // Async refinement via AI in background
+        if (titleTr) {
+          translateTextWithAI(titleTr, 'tr', 'en').then(res => res && setTitleEn(res));
+        }
+        if (synopsisTr) {
+          translateTextWithAI(synopsisTr, 'tr', 'en').then(res => res && setSynopsisEn(res));
+        }
+      } else {
+        const trTitle = translateTextSync(titleEn, 'en', 'tr');
+        const trGenre = translateTextSync(genreEn, 'en', 'tr');
+        const trSynopsis = translateTextSync(synopsisEn, 'en', 'tr');
+        const trQuote = favoriteQuoteEn ? translateTextSync(favoriteQuoteEn, 'en', 'tr') : '';
+
+        setTitleTr(trTitle);
+        setGenreTr(trGenre);
+        setSynopsisTr(trSynopsis);
+        setFavoriteQuoteTr(trQuote);
+
+        if (titleEn) {
+          translateTextWithAI(titleEn, 'en', 'tr').then(res => res && setTitleTr(res));
+        }
+        if (synopsisEn) {
+          translateTextWithAI(synopsisEn, 'en', 'tr').then(res => res && setSynopsisTr(res));
+        }
+      }
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !author.trim()) return;
+    
+    // Auto-fill opposite language if blank
+    const finalTitleTr = titleTr.trim() || translateTextSync(titleEn.trim(), 'en', 'tr') || titleEn.trim();
+    const finalTitleEn = titleEn.trim() || translateTextSync(titleTr.trim(), 'tr', 'en') || titleTr.trim();
+    
+    if (!finalTitleTr && !finalTitleEn) return;
+    if (!author.trim()) return;
+
+    const finalGenreTr = genreTr.trim() || translateTextSync(genreEn.trim(), 'en', 'tr') || 'Edebi Kurgu';
+    const finalGenreEn = genreEn.trim() || translateTextSync(genreTr.trim(), 'tr', 'en') || 'Literary Fiction';
+
+    const finalSynopsisTr = synopsisTr.trim() || translateTextSync(synopsisEn.trim(), 'en', 'tr');
+    const finalSynopsisEn = synopsisEn.trim() || translateTextSync(synopsisTr.trim(), 'tr', 'en');
+
+    const finalQuoteTr = favoriteQuoteTr.trim() || (favoriteQuoteEn.trim() ? translateTextSync(favoriteQuoteEn.trim(), 'en', 'tr') : undefined);
+    const finalQuoteEn = favoriteQuoteEn.trim() || (favoriteQuoteTr.trim() ? translateTextSync(favoriteQuoteTr.trim(), 'tr', 'en') : undefined);
+
+    const finalCoverTr = coverImageUrlTr.trim() || coverImageUrlEn.trim() || bookToEdit?.coverImageUrlTr || bookToEdit?.coverImageUrl;
+    const finalCoverEn = coverImageUrlEn.trim() || coverImageUrlTr.trim() || bookToEdit?.coverImageUrlEn || bookToEdit?.coverImageUrl;
 
     const themes = themesStr
       .split(',')
@@ -125,35 +216,43 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
     const savedBook: Book = {
       ...(bookToEdit || {}),
       id: bookId,
-      title: title.trim(),
+      title: finalTitleTr,
+      titleEn: finalTitleEn,
       originalTitle: originalTitle.trim() || undefined,
       author: author.trim(),
       year: Number(year) || 2025,
       pages: Number(pages) || 300,
-      genre: genre.trim(),
-      synopsis: synopsis.trim(),
-      favoriteQuote: favoriteQuote.trim() || undefined,
+      genre: finalGenreTr,
+      genreEn: finalGenreEn,
+      synopsis: finalSynopsisTr,
+      synopsisEn: finalSynopsisEn,
+      favoriteQuote: finalQuoteTr,
+      favoriteQuoteEn: finalQuoteEn,
       suggesterId: suggesterId || members[0]?.id || 'eda-aydogan',
       suggesterName: suggesterName || members[0]?.name || 'Eda Aydoğan',
       month: month.trim(),
+      monthEn: translateTextSync(month.trim(), 'tr', 'en') || month.trim(),
+      monthTr: translateTextSync(month.trim(), 'en', 'tr') || month.trim(),
       isBookOfMonth: isBookOfMonth,
       coverColor: coverColor || '#2C3E50',
       accentColor: accentColor || '#E67E22',
       spineTextColor: spineTextColor || '#FFFFFF',
       coverPattern: bookToEdit?.coverPattern || 'arch',
-      coverImageUrl: coverImageUrl.trim() || undefined,
+      coverImageUrl: language === 'en' ? (finalCoverEn || finalCoverTr) : (finalCoverTr || finalCoverEn),
+      coverImageUrlTr: finalCoverTr,
+      coverImageUrlEn: finalCoverEn,
       rating: rating,
       themes: themes.length > 0 ? themes : ['Literature', 'Club Selection'],
       buyLinks: bookToEdit?.buyLinks || {
         tr: {
           store: 'Amazon TR',
-          url: `https://www.amazon.com.tr/s?k=${encodeURIComponent(title)}`,
+          url: `https://www.amazon.com.tr/s?k=${encodeURIComponent(finalTitleTr)}`,
           language: 'TR',
           affiliateTag: 'edaydogannn-21'
         },
         en: {
           store: 'Amazon',
-          url: `https://www.amazon.com/s?k=${encodeURIComponent(title)}`,
+          url: `https://www.amazon.com/s?k=${encodeURIComponent(finalTitleEn)}`,
           language: 'EN',
           affiliateTag: 'edaydogannn-20'
         }
@@ -198,19 +297,66 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
               <h3 className="font-serif text-lg font-bold text-stone-900">
                 {isNew 
                   ? (language === 'en' ? 'Add New Book to Club Shelf' : 'Kulüp Rafına Yeni Kitap Ekle')
-                  : (language === 'en' ? `Edit Book: ${bookToEdit.title}` : `Kitabı Düzenle: ${bookToEdit.title}`)}
+                  : (language === 'en' ? `Edit Book: ${bookToEdit.titleEn || bookToEdit.title}` : `Kitabı Düzenle: ${bookToEdit.title}`)}
               </h3>
               <p className="text-[11px] text-stone-500 font-mono">
-                {language === 'en' ? 'Full Volume Details & Attributes' : 'Detaylı Cilt Özellikleri ve Ayarları'}
+                {language === 'en' ? 'Bilingual Synchronization (TR & EN Auto-Updated)' : 'İki Dilli Eşzamanlama (TR & EN Otomatik Güncellenir)'}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors"
+            className="p-1.5 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Bilingual Language Switcher Bar */}
+        <div className="flex items-center justify-between px-6 py-2.5 bg-stone-100 border-b border-stone-200 text-xs">
+          <div className="flex items-center gap-1.5">
+            <Globe className="w-3.5 h-3.5 text-stone-500" />
+            <span className="font-semibold text-stone-700">
+              {language === 'en' ? 'Edit Language:' : 'Düzenleme Dili:'}
+            </span>
+            <div className="inline-flex rounded-lg bg-stone-200 p-0.5 ml-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('tr')}
+                className={`px-3 py-1 rounded-md font-medium text-xs transition-colors cursor-pointer ${
+                  activeTab === 'tr' ? 'bg-white text-stone-900 shadow-xs font-bold' : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                Türkçe (TR)
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('en')}
+                className={`px-3 py-1 rounded-md font-medium text-xs transition-colors cursor-pointer ${
+                  activeTab === 'en' ? 'bg-white text-stone-900 shadow-xs font-bold' : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                English (EN)
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => handleAutoTranslate(activeTab === 'tr' ? 'tr-to-en' : 'en-to-tr')}
+            disabled={isTranslating}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+            title={activeTab === 'tr' ? 'Translate Turkish fields into English' : 'Translate English fields into Turkish'}
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#C45B38]" />
+            <span>
+              {isTranslating 
+                ? (language === 'en' ? 'Translating...' : 'Çevriliyor...') 
+                : activeTab === 'tr' 
+                  ? 'TR → EN Çevir' 
+                  : 'EN → TR Translate'}
+            </span>
           </button>
         </div>
 
@@ -240,31 +386,53 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
             </label>
           </div>
 
+          {/* Bilingual Title Fields based on activeTab */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-stone-800 mb-1">
-                {language === 'en' ? 'Title (Turkish or Translated)' : 'Kitap Adı'} *
+                {activeTab === 'tr' ? 'Kitap Adı (Türkçe)' : 'Book Title (English)'} *
               </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="e.g. Suçlu Doğmak"
-                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500 font-medium"
-                required
-              />
+              {activeTab === 'tr' ? (
+                <input
+                  type="text"
+                  value={titleTr}
+                  onChange={(e) => setTitleTr(e.target.value)}
+                  placeholder="örn. Suçlu Doğmak"
+                  className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500 font-medium"
+                  required
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={titleEn}
+                  onChange={(e) => setTitleEn(e.target.value)}
+                  placeholder="e.g. Born a Crime"
+                  className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500 font-medium"
+                  required
+                />
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-stone-800 mb-1">
-                {language === 'en' ? 'Original Title' : 'Orijinal Adı'}
+                {activeTab === 'tr' ? 'Orijinal Adı / İngilizce Karşılığı' : 'Turkish Title Equivalent'}
               </label>
-              <input
-                type="text"
-                value={originalTitle}
-                onChange={(e) => setOriginalTitle(e.target.value)}
-                placeholder="e.g. Born a Crime"
-                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
-              />
+              {activeTab === 'tr' ? (
+                <input
+                  type="text"
+                  value={titleEn}
+                  onChange={(e) => setTitleEn(e.target.value)}
+                  placeholder="e.g. Born a Crime"
+                  className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={titleTr}
+                  onChange={(e) => setTitleTr(e.target.value)}
+                  placeholder="örn. Suçlu Doğmak"
+                  className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+                />
+              )}
             </div>
           </div>
 
@@ -284,15 +452,25 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
             </div>
             <div>
               <label className="block text-xs font-semibold text-stone-800 mb-1">
-                {language === 'en' ? 'Genre' : 'Tür'}
+                {activeTab === 'tr' ? 'Tür (Türkçe)' : 'Genre (English)'}
               </label>
-              <input
-                type="text"
-                value={genre}
-                onChange={(e) => setGenre(e.target.value)}
-                placeholder="e.g. Memoir / Social Satire"
-                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
-              />
+              {activeTab === 'tr' ? (
+                <input
+                  type="text"
+                  value={genreTr}
+                  onChange={(e) => setGenreTr(e.target.value)}
+                  placeholder="örn. Anı / Hiciv"
+                  className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={genreEn}
+                  onChange={(e) => setGenreEn(e.target.value)}
+                  placeholder="e.g. Memoir / Satire"
+                  className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+                />
+              )}
             </div>
           </div>
 
@@ -368,22 +546,37 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
             </div>
           </div>
 
-          {/* Cover Image & Presets */}
+          {/* Cover Image & Presets for Active Tab */}
           <div className="p-4 bg-white border border-stone-200 rounded-xl space-y-3">
-            <label className="block text-xs font-semibold text-stone-800">
-              {language === 'en' ? 'Book Cover Image URL' : 'Kapak Görseli URL'}
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-stone-800">
+                {activeTab === 'tr' ? 'Türkçe Kapak Görseli URL' : 'English Cover Image URL'}
+              </label>
+              <span className="text-[10px] text-stone-500 font-mono">
+                {activeTab === 'tr' ? 'Türkçe arayüzde gösterilir' : 'Shown in English mode'}
+              </span>
+            </div>
             <div className="flex gap-3">
               <input
                 type="text"
-                value={coverImageUrl}
-                onChange={(e) => setCoverImageUrl(e.target.value)}
+                value={activeTab === 'tr' ? coverImageUrlTr : coverImageUrlEn}
+                onChange={(e) => {
+                  if (activeTab === 'tr') {
+                    setCoverImageUrlTr(e.target.value);
+                  } else {
+                    setCoverImageUrlEn(e.target.value);
+                  }
+                }}
                 placeholder="/covers/suclu-dogmak.jpg or https://..."
                 className="flex-1 text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg font-mono focus:outline-none"
               />
-              {coverImageUrl && (
+              {(activeTab === 'tr' ? coverImageUrlTr : coverImageUrlEn) && (
                 <div className="w-12 h-16 bg-stone-200 rounded-md overflow-hidden border border-stone-300 shrink-0">
-                  <img src={coverImageUrl} alt="Preview" className="w-full h-full object-cover" />
+                  <img 
+                    src={activeTab === 'tr' ? coverImageUrlTr : coverImageUrlEn} 
+                    alt="Preview" 
+                    className="w-full h-full object-cover" 
+                  />
                 </div>
               )}
             </div>
@@ -394,22 +587,74 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
                 {language === 'en' ? 'Quick Cover Presets:' : 'Hızlı Kapak Seçimi:'}
               </span>
               <div className="flex flex-wrap gap-1.5">
-                {PRESET_COVERS.map((preset) => (
-                  <button
-                    key={preset.url}
-                    type="button"
-                    onClick={() => setCoverImageUrl(preset.url)}
-                    className={`text-[11px] px-2.5 py-1 rounded-md border transition-colors cursor-pointer ${
-                      coverImageUrl === preset.url
-                        ? 'bg-amber-100 text-amber-900 border-amber-300 font-semibold'
-                        : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200'
-                    }`}
-                  >
-                    {preset.label}
-                  </button>
-                ))}
+                {PRESET_COVERS.map((preset) => {
+                  const currentCover = activeTab === 'tr' ? coverImageUrlTr : coverImageUrlEn;
+                  return (
+                    <button
+                      key={preset.url}
+                      type="button"
+                      onClick={() => {
+                        if (activeTab === 'tr') setCoverImageUrlTr(preset.url);
+                        else setCoverImageUrlEn(preset.url);
+                      }}
+                      className={`text-[11px] px-2.5 py-1 rounded-md border transition-colors cursor-pointer ${
+                        currentCover === preset.url
+                          ? 'bg-amber-100 text-amber-900 border-amber-300 font-semibold'
+                          : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200'
+                      }`}
+                    >
+                      {preset.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-stone-800 mb-1">
+              {activeTab === 'tr' ? 'Özet & Kulüp Notu (Türkçe)' : 'Synopsis & Club Note (English)'}
+            </label>
+            {activeTab === 'tr' ? (
+              <textarea
+                rows={3}
+                value={synopsisTr}
+                onChange={(e) => setSynopsisTr(e.target.value)}
+                placeholder="Kitap özeti ve kulüp değerlendirmesi..."
+                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+              />
+            ) : (
+              <textarea
+                rows={3}
+                value={synopsisEn}
+                onChange={(e) => setSynopsisEn(e.target.value)}
+                placeholder="Book synopsis and reading club commentary..."
+                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+              />
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-stone-800 mb-1">
+              {activeTab === 'tr' ? 'Öne Çıkan Alıntı (Türkçe)' : 'Favorite Quote (English)'}
+            </label>
+            {activeTab === 'tr' ? (
+              <input
+                type="text"
+                value={favoriteQuoteTr}
+                onChange={(e) => setFavoriteQuoteTr(e.target.value)}
+                placeholder="Kitaptan unutulmaz bir cümle..."
+                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500 italic"
+              />
+            ) : (
+              <input
+                type="text"
+                value={favoriteQuoteEn}
+                onChange={(e) => setFavoriteQuoteEn(e.target.value)}
+                placeholder="A memorable line from the book..."
+                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500 italic"
+              />
+            )}
           </div>
 
           <div>
@@ -422,30 +667,6 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
               onChange={(e) => setThemesStr(e.target.value)}
               placeholder="Apartheid, Humor, Identity, Resistance"
               className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-stone-800 mb-1">
-              {language === 'en' ? 'Synopsis & Club Note' : 'Özet & Kulüp Notu'}
-            </label>
-            <textarea
-              rows={3}
-              value={synopsis}
-              onChange={(e) => setSynopsis(e.target.value)}
-              className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-stone-800 mb-1">
-              {language === 'en' ? 'Favorite Quote' : 'Öne Çıkan Alıntı'}
-            </label>
-            <input
-              type="text"
-              value={favoriteQuote}
-              onChange={(e) => setFavoriteQuote(e.target.value)}
-              className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500 italic"
             />
           </div>
 
@@ -466,16 +687,16 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-medium text-stone-700 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-medium text-stone-700 hover:text-stone-900 transition-colors cursor-pointer"
               >
-                {language === 'en' ? 'Cancel' : 'İptal'}
+                {language === 'en' ? 'Cancel' : 'Vazgeç'}
               </button>
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-semibold text-white bg-stone-900 hover:bg-stone-800 rounded-xl shadow-xs transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#C45B38] hover:bg-[#A84B2C] text-white text-xs font-semibold rounded-xl shadow-md transition-all cursor-pointer"
               >
-                <Save className="w-3.5 h-3.5 text-amber-400" />
-                <span>{language === 'en' ? 'Save Book' : 'Kitabı Kaydet'}</span>
+                <Save className="w-4 h-4" />
+                <span>{language === 'en' ? 'Save Volume' : 'Kitabı Kaydet'}</span>
               </button>
             </div>
           </div>

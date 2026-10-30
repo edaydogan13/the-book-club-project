@@ -38,6 +38,7 @@ export const BookOfTheMonthSection: React.FC<BookOfTheMonthSectionProps> = ({
   currentUser = null,
   onEditBook,
 }) => {
+  if (!book) return null;
   const canUploadVideo = isAdmin || Boolean(currentUser);
   const t = TRANSLATIONS[language];
   const displayMonth = language === 'en' ? 'October 2026' : 'Ekim 2026';
@@ -140,8 +141,8 @@ export const BookOfTheMonthSection: React.FC<BookOfTheMonthSectionProps> = ({
                   </p>
                 )}
                 <div className="mt-2 pt-2 border-t border-white/25 flex items-center justify-between text-[10px] text-stone-300 font-mono">
-                  <span>{getBookBinding(book.physicalDetails.binding, language)}</span>
-                  <span>{book.pages} {t.pagesUnit}</span>
+                  <span>{getBookBinding(book.physicalDetails?.binding || 'Paperback', language)}</span>
+                  <span>{book.pages || 300} {t.pagesUnit}</span>
                 </div>
               </div>
             </div>
@@ -149,22 +150,22 @@ export const BookOfTheMonthSection: React.FC<BookOfTheMonthSectionProps> = ({
             {/* Direct Affiliate Buy Links */}
             <div className="w-full max-w-sm mt-4 grid grid-cols-2 gap-2 text-center">
               <a
-                href={book.buyLinks.tr.url}
+                href={book.buyLinks?.tr?.url || `https://www.amazon.com.tr/s?k=${encodeURIComponent(book.title || '')}&tag=edaydogannn-21`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="py-2 px-2.5 bg-stone-100 hover:bg-stone-200 text-stone-900 border border-stone-300 rounded-xl text-xs font-medium transition-colors flex flex-col items-center"
               >
                 <span className="font-semibold">{t.botmBuyTurkish}</span>
-                <span className="text-[10px] text-stone-500 font-mono">{book.buyLinks.tr.store} ({book.buyLinks.tr.price})</span>
+                <span className="text-[10px] text-stone-500 font-mono">{book.buyLinks?.tr?.store || 'Amazon TR'} {book.buyLinks?.tr?.price ? `(${book.buyLinks.tr.price})` : ''}</span>
               </a>
               <a
-                href={book.buyLinks.en.url}
+                href={book.buyLinks?.en?.url || `https://www.amazon.com/s?k=${encodeURIComponent(book.titleEn || book.title || '')}&tag=edaydogannn-20`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="py-2 px-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-medium transition-colors flex flex-col items-center shadow-xs"
               >
                 <span className="font-semibold">{t.botmBuyEnglish}</span>
-                <span className="text-[10px] text-stone-400 font-mono">{book.buyLinks.en.store} ({book.buyLinks.en.price})</span>
+                <span className="text-[10px] text-stone-400 font-mono">{book.buyLinks?.en?.store || 'Amazon'} {book.buyLinks?.en?.price ? `(${book.buyLinks.en.price})` : ''}</span>
               </a>
             </div>
           </div>
@@ -210,7 +211,7 @@ export const BookOfTheMonthSection: React.FC<BookOfTheMonthSectionProps> = ({
               <div className="flex items-center justify-between">
                 <span className="text-xs font-mono uppercase tracking-wider text-stone-600 font-bold flex items-center gap-1.5">
                   <MessageSquare className="w-3.5 h-3.5 text-stone-500" />
-                  <span>{t.memberCommentsCount} ({book.comments.length})</span>
+                  <span>{t.memberCommentsCount} ({(book.comments || []).length})</span>
                 </span>
                 <button
                   type="button"
@@ -222,7 +223,7 @@ export const BookOfTheMonthSection: React.FC<BookOfTheMonthSectionProps> = ({
               </div>
 
               <div className="space-y-2">
-                {book.comments.slice(0, 2).map((comment) => (
+                {(book.comments || []).slice(0, 2).map((comment) => (
                   <div key={comment.id} className="p-3 bg-white rounded-xl border border-stone-200 text-xs">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-semibold text-stone-900">{comment.authorName}</span>

@@ -3,6 +3,7 @@ import { SiteContent } from '../types';
 import { Language, TRANSLATIONS } from '../translations';
 import { X, Save, RotateCcw, Sparkles, Type, BarChart2, Bell } from 'lucide-react';
 import { INITIAL_SITE_CONTENT } from '../data/initialData';
+import { translateTextSync, translateTextWithAI } from '../utils/translator';
 
 interface EditSiteContentModalProps {
   isOpen: boolean;
@@ -24,14 +25,73 @@ export const EditSiteContentModal: React.FC<EditSiteContentModalProps> = ({
   const t = TRANSLATIONS[language];
 
   useEffect(() => {
-    setFormData(siteContent);
-  }, [siteContent, isOpen]);
+    if (language === 'en') {
+      setFormData({
+        ...siteContent,
+        heroCities: siteContent.heroCitiesEn || siteContent.heroCities,
+        heroLine1: siteContent.heroLine1En || siteContent.heroLine1,
+        heroAccent: siteContent.heroAccentEn || siteContent.heroAccent,
+        heroLine2: siteContent.heroLine2En || siteContent.heroLine2,
+        heroSubtitle: siteContent.heroSubtitleEn || siteContent.heroSubtitle,
+        statBooksLabel: siteContent.statBooksLabelEn || siteContent.statBooksLabel,
+        statPagesLabel: siteContent.statPagesLabelEn || siteContent.statPagesLabel,
+        statMembersLabel: siteContent.statMembersLabelEn || siteContent.statMembersLabel,
+        announcement: siteContent.announcementEn || siteContent.announcement,
+      });
+    } else {
+      setFormData(siteContent);
+    }
+  }, [siteContent, isOpen, language]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(formData);
+    const updated: SiteContent = { ...formData };
+
+    if (language === 'en') {
+      updated.heroCitiesEn = formData.heroCities;
+      updated.heroLine1En = formData.heroLine1;
+      updated.heroAccentEn = formData.heroAccent;
+      updated.heroLine2En = formData.heroLine2;
+      updated.heroSubtitleEn = formData.heroSubtitle;
+      updated.statBooksLabelEn = formData.statBooksLabel;
+      updated.statPagesLabelEn = formData.statPagesLabel;
+      updated.statMembersLabelEn = formData.statMembersLabel;
+      updated.announcementEn = formData.announcement;
+
+      updated.heroCities = translateTextSync(formData.heroCities, 'en', 'tr');
+      updated.heroLine1 = translateTextSync(formData.heroLine1, 'en', 'tr');
+      updated.heroAccent = translateTextSync(formData.heroAccent, 'en', 'tr');
+      updated.heroLine2 = translateTextSync(formData.heroLine2, 'en', 'tr');
+      updated.heroSubtitle = translateTextSync(formData.heroSubtitle, 'en', 'tr');
+      updated.statBooksLabel = translateTextSync(formData.statBooksLabel, 'en', 'tr');
+      updated.statPagesLabel = translateTextSync(formData.statPagesLabel, 'en', 'tr');
+      updated.statMembersLabel = translateTextSync(formData.statMembersLabel, 'en', 'tr');
+      updated.announcement = formData.announcement ? translateTextSync(formData.announcement, 'en', 'tr') : '';
+    } else {
+      updated.heroCities = formData.heroCities;
+      updated.heroLine1 = formData.heroLine1;
+      updated.heroAccent = formData.heroAccent;
+      updated.heroLine2 = formData.heroLine2;
+      updated.heroSubtitle = formData.heroSubtitle;
+      updated.statBooksLabel = formData.statBooksLabel;
+      updated.statPagesLabel = formData.statPagesLabel;
+      updated.statMembersLabel = formData.statMembersLabel;
+      updated.announcement = formData.announcement;
+
+      updated.heroCitiesEn = translateTextSync(formData.heroCities, 'tr', 'en');
+      updated.heroLine1En = translateTextSync(formData.heroLine1, 'tr', 'en');
+      updated.heroAccentEn = translateTextSync(formData.heroAccent, 'tr', 'en');
+      updated.heroLine2En = translateTextSync(formData.heroLine2, 'tr', 'en');
+      updated.heroSubtitleEn = translateTextSync(formData.heroSubtitle, 'tr', 'en');
+      updated.statBooksLabelEn = translateTextSync(formData.statBooksLabel, 'tr', 'en');
+      updated.statPagesLabelEn = translateTextSync(formData.statPagesLabel, 'tr', 'en');
+      updated.statMembersLabelEn = translateTextSync(formData.statMembersLabel, 'tr', 'en');
+      updated.announcementEn = formData.announcement ? translateTextSync(formData.announcement, 'tr', 'en') : '';
+    }
+
+    onSave(updated);
     onClose();
   };
 

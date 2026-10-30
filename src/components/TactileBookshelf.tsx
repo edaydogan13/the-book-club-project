@@ -45,18 +45,19 @@ export const TactileBookshelf: React.FC<TactileBookshelfProps> = ({
   const displaySubtitle = subtitle || t.shelfSubtitle;
 
   // Extract unique suggesters
-  const suggesters = Array.from(new Set(books.map(b => b.suggesterName)));
+  const safeBooks = Array.isArray(books) ? books : [];
+  const suggesters = Array.from(new Set(safeBooks.map(b => b.suggesterName).filter(Boolean)));
 
   // Filter books
-  const filteredBooks = books.filter(book => {
+  const filteredBooks = safeBooks.filter(book => {
     const matchesSuggester = selectedSuggester === 'all' || book.suggesterName === selectedSuggester;
     const query = searchQuery.toLowerCase();
     const matchesSearch = searchQuery === '' || 
-      book.title.toLowerCase().includes(query) ||
+      (book.title && book.title.toLowerCase().includes(query)) ||
       (book.titleEn && book.titleEn.toLowerCase().includes(query)) ||
       (book.originalTitle && book.originalTitle.toLowerCase().includes(query)) ||
-      book.author.toLowerCase().includes(query) ||
-      book.genre.toLowerCase().includes(query) ||
+      (book.author && book.author.toLowerCase().includes(query)) ||
+      (book.genre && book.genre.toLowerCase().includes(query)) ||
       (book.genreEn && book.genreEn.toLowerCase().includes(query));
     return matchesSuggester && matchesSearch;
   });

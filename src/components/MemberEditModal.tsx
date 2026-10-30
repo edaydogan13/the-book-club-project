@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Member } from '../types';
 import { Language, TRANSLATIONS } from '../translations';
-import { X, Save, Trash2, Users, Linkedin, Sparkles, Upload, Camera } from 'lucide-react';
+import { X, Save, Trash2, Users, Linkedin, Sparkles, Upload, Camera, Globe } from 'lucide-react';
+import { translateTextSync, translateTextWithAI } from '../utils/translator';
 
 interface MemberEditModalProps {
   isOpen: boolean;
@@ -30,16 +31,26 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
   language,
 }) => {
   const isNew = !memberToEdit;
+  const [activeTab, setActiveTab] = useState<'tr' | 'en'>(language === 'en' ? 'en' : 'tr');
 
   const [name, setName] = useState('');
-  const [role, setRole] = useState('');
-  const [bio, setBio] = useState('');
   const [linkedinUrl, setLinkedinUrl] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
-  const [readingGoal2026, setReadingGoal2026] = useState('');
-  const [currentlyReading, setCurrentlyReading] = useState('');
-  const [favoriteQuote, setFavoriteQuote] = useState('');
   const [joinedYear, setJoinedYear] = useState('Founding Member (Nov 2025)');
+
+  // Bilingual fields
+  const [roleTr, setRoleTr] = useState('');
+  const [roleEn, setRoleEn] = useState('');
+  const [bioTr, setBioTr] = useState('');
+  const [bioEn, setBioEn] = useState('');
+  const [goalTr, setGoalTr] = useState('');
+  const [goalEn, setGoalEn] = useState('');
+  const [readingTr, setReadingTr] = useState('');
+  const [readingEn, setReadingEn] = useState('');
+  const [quoteTr, setQuoteTr] = useState('');
+  const [quoteEn, setQuoteEn] = useState('');
+
+  const [isTranslating, setIsTranslating] = useState(false);
 
   // Upload photo states
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -84,36 +95,101 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
   };
 
   useEffect(() => {
+    setActiveTab(language === 'en' ? 'en' : 'tr');
     if (memberToEdit) {
       setName(memberToEdit.name);
-      setRole(memberToEdit.role);
-      setBio(memberToEdit.bio);
       setLinkedinUrl(memberToEdit.linkedinUrl);
       setAvatarUrl(memberToEdit.avatarUrl);
-      setReadingGoal2026(memberToEdit.readingGoal2026);
-      setCurrentlyReading(memberToEdit.currentlyReading);
-      setFavoriteQuote(memberToEdit.favoriteQuote);
       setJoinedYear(memberToEdit.joinedYear || 'Founding Member (Nov 2025)');
+
+      setRoleTr(memberToEdit.role || '');
+      setRoleEn(memberToEdit.roleEn || memberToEdit.role || '');
+      setBioTr(memberToEdit.bio || '');
+      setBioEn(memberToEdit.bioEn || memberToEdit.bio || '');
+      setGoalTr(memberToEdit.readingGoal2026 || '');
+      setGoalEn(memberToEdit.readingGoal2026En || memberToEdit.readingGoal2026 || '');
+      setReadingTr(memberToEdit.currentlyReading || '');
+      setReadingEn(memberToEdit.currentlyReadingEn || memberToEdit.currentlyReading || '');
+      setQuoteTr(memberToEdit.favoriteQuote || '');
+      setQuoteEn(memberToEdit.favoriteQuoteEn || memberToEdit.favoriteQuote || '');
     } else {
       setName('');
-      setRole('Club Curator & Reader');
-      setBio('');
       setLinkedinUrl('https://www.linkedin.com/in/');
       setAvatarUrl('/members/edaaydogan.jpg');
-      setReadingGoal2026('24 books (12 completed)');
-      setCurrentlyReading('Suçlu Doğmak by Trevor Noah');
-      setFavoriteQuote('');
       setJoinedYear('Member (2026)');
+
+      setRoleTr('Kulüp Küratörü & Okur');
+      setRoleEn('Club Curator & Reader');
+      setBioTr('');
+      setBioEn('');
+      setGoalTr('24 kitap (12 tamamlandı)');
+      setGoalEn('24 books (12 completed)');
+      setReadingTr('Suçlu Doğmak by Trevor Noah');
+      setReadingEn('Born a Crime by Trevor Noah');
+      setQuoteTr('');
+      setQuoteEn('');
     }
-  }, [memberToEdit, isOpen]);
+  }, [memberToEdit, isOpen, language]);
 
   if (!isOpen) return null;
+
+  const handleAutoTranslate = async (direction: 'tr-to-en' | 'en-to-tr') => {
+    setIsTranslating(true);
+    try {
+      if (direction === 'tr-to-en') {
+        const transRole = translateTextSync(roleTr, 'tr', 'en');
+        const transBio = translateTextSync(bioTr, 'tr', 'en');
+        const transGoal = translateTextSync(goalTr, 'tr', 'en');
+        const transReading = translateTextSync(readingTr, 'tr', 'en');
+        const transQuote = quoteTr ? translateTextSync(quoteTr, 'tr', 'en') : '';
+
+        setRoleEn(transRole);
+        setBioEn(transBio);
+        setGoalEn(transGoal);
+        setReadingEn(transReading);
+        setQuoteEn(transQuote);
+
+        if (bioTr) translateTextWithAI(bioTr, 'tr', 'en').then(res => res && setBioEn(res));
+      } else {
+        const transRole = translateTextSync(roleEn, 'en', 'tr');
+        const transBio = translateTextSync(bioEn, 'en', 'tr');
+        const transGoal = translateTextSync(goalEn, 'en', 'tr');
+        const transReading = translateTextSync(readingEn, 'en', 'tr');
+        const transQuote = quoteEn ? translateTextSync(quoteEn, 'en', 'tr') : '';
+
+        setRoleTr(transRole);
+        setBioTr(transBio);
+        setGoalTr(transGoal);
+        setReadingTr(transReading);
+        setQuoteTr(transQuote);
+
+        if (bioEn) translateTextWithAI(bioEn, 'en', 'tr').then(res => res && setBioTr(res));
+      }
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
     const memberId = memberToEdit?.id || name.toLowerCase().replace(/[^a-z0-9]/g, '-');
+
+    const finalRoleTr = roleTr.trim() || translateTextSync(roleEn.trim(), 'en', 'tr') || 'Kulüp Küratörü & Okur';
+    const finalRoleEn = roleEn.trim() || translateTextSync(roleTr.trim(), 'tr', 'en') || 'Club Curator & Reader';
+
+    const finalBioTr = bioTr.trim() || translateTextSync(bioEn.trim(), 'en', 'tr');
+    const finalBioEn = bioEn.trim() || translateTextSync(bioTr.trim(), 'tr', 'en');
+
+    const finalGoalTr = goalTr.trim() || translateTextSync(goalEn.trim(), 'en', 'tr') || '24 kitap (12 tamamlandı)';
+    const finalGoalEn = goalEn.trim() || translateTextSync(goalTr.trim(), 'tr', 'en') || '24 books (12 completed)';
+
+    const finalReadingTr = readingTr.trim() || translateTextSync(readingEn.trim(), 'en', 'tr');
+    const finalReadingEn = readingEn.trim() || translateTextSync(readingTr.trim(), 'tr', 'en');
+
+    const finalQuoteTr = quoteTr.trim() || (quoteEn.trim() ? translateTextSync(quoteEn.trim(), 'en', 'tr') : '');
+    const finalQuoteEn = quoteEn.trim() || (quoteTr.trim() ? translateTextSync(quoteTr.trim(), 'tr', 'en') : '');
 
     const updated: Member = {
       ...(memberToEdit || {
@@ -122,13 +198,18 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
       }),
       id: memberId,
       name: name.trim(),
-      role: role.trim(),
-      bio: bio.trim(),
+      role: finalRoleTr,
+      roleEn: finalRoleEn,
+      bio: finalBioTr,
+      bioEn: finalBioEn,
       linkedinUrl: linkedinUrl.trim(),
       avatarUrl: avatarUrl.trim() || '/members/edaaydogan.jpg',
-      readingGoal2026: readingGoal2026.trim(),
-      currentlyReading: currentlyReading.trim(),
-      favoriteQuote: favoriteQuote.trim(),
+      readingGoal2026: finalGoalTr,
+      readingGoal2026En: finalGoalEn,
+      currentlyReading: finalReadingTr,
+      currentlyReadingEn: finalReadingEn,
+      favoriteQuote: finalQuoteTr,
+      favoriteQuoteEn: finalQuoteEn,
       joinedYear: joinedYear.trim(),
     };
 
@@ -167,16 +248,62 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
                   : (language === 'en' ? `Edit Member Profile: ${memberToEdit.name}` : `Üye Profilini Düzenle: ${memberToEdit.name}`)}
               </h3>
               <p className="text-[11px] text-stone-500 font-mono">
-                {language === 'en' ? 'Curator Directory & Library Ownership' : 'Küratör Dizini ve Kitaplık Sahibi'}
+                {language === 'en' ? 'Bilingual Curator Profile & Library' : 'İki Dilli Küratör Profili ve Kitaplık'}
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors"
+            className="p-1.5 text-stone-400 hover:text-stone-900 rounded-full hover:bg-stone-100 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Bilingual Language Switcher Bar */}
+        <div className="flex items-center justify-between px-6 py-2.5 bg-stone-100 border-b border-stone-200 text-xs">
+          <div className="flex items-center gap-1.5">
+            <Globe className="w-3.5 h-3.5 text-stone-500" />
+            <span className="font-semibold text-stone-700">
+              {language === 'en' ? 'Edit Language:' : 'Düzenleme Dili:'}
+            </span>
+            <div className="inline-flex rounded-lg bg-stone-200 p-0.5 ml-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('tr')}
+                className={`px-3 py-1 rounded-md font-medium text-xs transition-colors cursor-pointer ${
+                  activeTab === 'tr' ? 'bg-white text-stone-900 shadow-xs font-bold' : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                Türkçe (TR)
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('en')}
+                className={`px-3 py-1 rounded-md font-medium text-xs transition-colors cursor-pointer ${
+                  activeTab === 'en' ? 'bg-white text-stone-900 shadow-xs font-bold' : 'text-stone-600 hover:text-stone-900'
+                }`}
+              >
+                English (EN)
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => handleAutoTranslate(activeTab === 'tr' ? 'tr-to-en' : 'en-to-tr')}
+            disabled={isTranslating}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 transition-colors shadow-xs cursor-pointer disabled:opacity-50"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-[#C45B38]" />
+            <span>
+              {isTranslating 
+                ? (language === 'en' ? 'Translating...' : 'Çevriliyor...') 
+                : activeTab === 'tr' 
+                  ? 'TR → EN Çevir' 
+                  : 'EN → TR Translate'}
+            </span>
           </button>
         </div>
 
@@ -198,163 +325,78 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
             </div>
             <div>
               <label className="block text-xs font-semibold text-stone-800 mb-1">
-                {language === 'en' ? 'Role & Specialization' : 'Rol & Uzmanlık'}
+                {activeTab === 'tr' ? 'Kulüp Rolü (Türkçe)' : 'Club Role (English)'}
               </label>
-              <input
-                type="text"
-                value={role}
-                onChange={(e) => setRole(e.target.value)}
-                placeholder="e.g. Founder & Literary Director"
-                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-stone-800 mb-1">
-              {language === 'en' ? 'Biography / Profile Summary' : 'Biyografi / Profil Özeti'}
-            </label>
-            <textarea
-              rows={3}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-stone-800 mb-1 flex items-center gap-1.5">
-              <Linkedin className="w-3.5 h-3.5 text-[#0A66C2]" />
-              <span>{language === 'en' ? 'LinkedIn Profile URL' : 'LinkedIn Profil Linki'}</span>
-            </label>
-            <input
-              type="url"
-              value={linkedinUrl}
-              onChange={(e) => setLinkedinUrl(e.target.value)}
-              placeholder="https://www.linkedin.com/in/..."
-              className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500 font-mono"
-            />
-          </div>
-
-          {/* Avatar Photo Upload & Presets */}
-          <div className="p-4 bg-white border border-stone-300 rounded-xl space-y-3.5">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-stone-800 flex items-center gap-1.5">
-                <Camera className="w-4 h-4 text-[#C45B38]" />
-                <span>{language === 'en' ? 'Profile Picture / Member Portrait' : 'Profil Fotoğrafı'}</span>
-              </label>
-              {avatarUrl && avatarUrl.startsWith('data:') && (
-                <span className="text-[10px] font-mono bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-medium">
-                  {language === 'en' ? '✓ Custom Upload Ready' : '✓ Yeni Görsel Yüklendi'}
-                </span>
+              {activeTab === 'tr' ? (
+                <input
+                  type="text"
+                  value={roleTr}
+                  onChange={(e) => setRoleTr(e.target.value)}
+                  placeholder="örn. Kulüp Kurucusu & Moderatör"
+                  className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={roleEn}
+                  onChange={(e) => setRoleEn(e.target.value)}
+                  placeholder="e.g. Club Host & Founder"
+                  className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+                />
               )}
             </div>
+          </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              {/* Preview with Hover Upload Trigger */}
-              <div className="relative w-20 h-20 rounded-2xl overflow-hidden bg-stone-200 border-2 border-stone-300 shadow-xs shrink-0 group">
-                <img
-                  src={avatarUrl}
-                  alt={name || 'Preview'}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/members/edaaydogan.jpg';
-                  }}
+          {/* Photo Upload & Presets */}
+          <div className="p-4 bg-white border border-stone-200 rounded-xl space-y-3">
+            <label className="block text-xs font-semibold text-stone-800">
+              {language === 'en' ? 'Profile Photo' : 'Profil Fotoğrafı'}
+            </label>
+
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-full overflow-hidden border border-stone-300 shrink-0 bg-stone-100 shadow-xs">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-stone-400">
+                    <Camera className="w-6 h-6" />
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileInputChange}
+                  accept="image/*"
+                  className="hidden"
                 />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute inset-0 bg-stone-950/65 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white text-[10px] font-medium transition-opacity cursor-pointer p-1 text-center"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-stone-900 hover:bg-stone-800 text-white transition-colors cursor-pointer"
                 >
-                  <Upload className="w-4 h-4 mb-1" />
-                  <span>{language === 'en' ? 'Upload' : 'Yükle'}</span>
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>{language === 'en' ? 'Upload Photo' : 'Fotoğraf Yükle'}</span>
                 </button>
-              </div>
-
-              {/* Upload Input & Drop Box */}
-              <div className="flex-1 w-full space-y-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileInputChange}
-                  className="hidden"
-                  id="admin-modal-photo-file"
-                />
-
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={handleDropPhoto}
-                  className={`border-2 border-dashed rounded-xl p-3 flex flex-col sm:flex-row items-center justify-between gap-2.5 transition-all ${
-                    isDragging 
-                      ? 'border-[#C45B38] bg-amber-50/70' 
-                      : 'border-stone-300 bg-stone-50 hover:border-[#C45B38]/60'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center text-[#C45B38] shrink-0 border border-stone-200">
-                      <Upload className="w-3.5 h-3.5" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-xs font-semibold text-stone-800">
-                        {language === 'en' ? 'Upload photo from device' : 'Cihazdan fotoğraf yükle'}
-                      </p>
-                      <p className="text-[10px] text-stone-500">
-                        {language === 'en' ? 'PNG, JPG, WebP (Max 5MB)' : 'PNG, JPG, WebP (Maks 5MB)'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-3 py-1.5 bg-[#C45B38] hover:bg-[#a94827] text-white rounded-lg text-xs font-semibold transition-colors shadow-xs cursor-pointer whitespace-nowrap"
-                  >
-                    {language === 'en' ? 'Upload Photo' : 'Fotoğraf Yükle'}
-                  </button>
-                </div>
-
-                {uploadError && (
-                  <p className="text-[11px] text-rose-600 font-medium">{uploadError}</p>
-                )}
-
-                {/* Direct URL input */}
-                <div className="flex items-center gap-2 pt-1">
-                  <span className="text-[11px] text-stone-500 font-mono shrink-0">
-                    {language === 'en' ? 'Or URL:' : 'Veya URL:'}
-                  </span>
-                  <input
-                    type="text"
-                    value={avatarUrl}
-                    onChange={(e) => {
-                      setAvatarUrl(e.target.value);
-                      setUploadError(null);
-                    }}
-                    placeholder="/members/cemresirin.webp or https://..."
-                    className="flex-1 text-[11px] p-2 bg-stone-50 border border-stone-200 rounded-lg font-mono focus:outline-none focus:border-[#C45B38]"
-                  />
-                </div>
               </div>
             </div>
 
-            {/* Existing Presets */}
-            <div className="pt-2 border-t border-stone-200/80">
-              <span className="text-[10px] text-stone-500 font-mono uppercase block mb-1.5">
-                {language === 'en' ? 'Or choose existing member portrait:' : 'Veya mevcut üye portresi seçin:'}
+            {/* Presets */}
+            <div className="pt-2 border-t border-stone-100">
+              <span className="text-[10px] text-stone-500 font-mono uppercase block mb-1">
+                {language === 'en' ? 'Or choose existing member photo:' : 'Veya mevcut üye görseli seçin:'}
               </span>
               <div className="flex flex-wrap gap-1.5">
                 {PRESET_AVATARS.map((preset) => (
                   <button
                     key={preset.url}
                     type="button"
-                    onClick={() => {
-                      setAvatarUrl(preset.url);
-                      setUploadError(null);
-                    }}
+                    onClick={() => setAvatarUrl(preset.url)}
                     className={`text-[11px] px-2.5 py-1 rounded-md border transition-colors cursor-pointer ${
                       avatarUrl === preset.url
-                        ? 'bg-[#C45B38] text-white border-[#C45B38] font-semibold'
+                        ? 'bg-amber-100 text-amber-900 border-amber-300 font-semibold'
                         : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200'
                     }`}
                   >
@@ -365,42 +407,110 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
             </div>
           </div>
 
+          <div>
+            <label className="block text-xs font-semibold text-stone-800 mb-1">
+              {activeTab === 'tr' ? 'Biyografi (Türkçe)' : 'Curator Bio (English)'}
+            </label>
+            {activeTab === 'tr' ? (
+              <textarea
+                rows={3}
+                value={bioTr}
+                onChange={(e) => setBioTr(e.target.value)}
+                placeholder="Üyenin edebi ilgileri, okuma alışkanlıkları ve kulüp deneyimi..."
+                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+              />
+            ) : (
+              <textarea
+                rows={3}
+                value={bioEn}
+                onChange={(e) => setBioEn(e.target.value)}
+                placeholder="Curator's literary journey, reading habits, and club commentary..."
+                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+              />
+            )}
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-stone-800 mb-1">
-                {language === 'en' ? '2026 Reading Target' : '2026 Okuma Hedefi'}
+                {activeTab === 'tr' ? '2026 Okuma Hedefi (Türkçe)' : '2026 Reading Goal (English)'}
               </label>
-              <input
-                type="text"
-                value={readingGoal2026}
-                onChange={(e) => setReadingGoal2026(e.target.value)}
-                placeholder="24 books (20 completed)"
-                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
-              />
+              {activeTab === 'tr' ? (
+                <input
+                  type="text"
+                  value={goalTr}
+                  onChange={(e) => setGoalTr(e.target.value)}
+                  placeholder="örn. 24 kitap (12 tamamlandı)"
+                  className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={goalEn}
+                  onChange={(e) => setGoalEn(e.target.value)}
+                  placeholder="e.g. 24 books (12 completed)"
+                  className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+                />
+              )}
             </div>
+
             <div>
               <label className="block text-xs font-semibold text-stone-800 mb-1">
-                {language === 'en' ? 'Currently Reading' : 'Şu Anda Okuyor'}
+                {activeTab === 'tr' ? 'Şu An Ne Okuyor? (Türkçe)' : 'Currently Reading (English)'}
               </label>
-              <input
-                type="text"
-                value={currentlyReading}
-                onChange={(e) => setCurrentlyReading(e.target.value)}
-                placeholder="Suçlu Doğmak by Trevor Noah"
-                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
-              />
+              {activeTab === 'tr' ? (
+                <input
+                  type="text"
+                  value={readingTr}
+                  onChange={(e) => setReadingTr(e.target.value)}
+                  placeholder="örn. Suçlu Doğmak — Trevor Noah"
+                  className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+                />
+              ) : (
+                <input
+                  type="text"
+                  value={readingEn}
+                  onChange={(e) => setReadingEn(e.target.value)}
+                  placeholder="e.g. Born a Crime by Trevor Noah"
+                  className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
+                />
+              )}
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-stone-800 mb-1">
-              {language === 'en' ? 'Favorite Quote' : 'Favori Alıntı'}
+              {activeTab === 'tr' ? 'Favori Alıntı (Türkçe)' : 'Favorite Literary Quote (English)'}
+            </label>
+            {activeTab === 'tr' ? (
+              <input
+                type="text"
+                value={quoteTr}
+                onChange={(e) => setQuoteTr(e.target.value)}
+                placeholder="Sevdiğiniz edebi bir alıntı..."
+                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500 italic"
+              />
+            ) : (
+              <input
+                type="text"
+                value={quoteEn}
+                onChange={(e) => setQuoteEn(e.target.value)}
+                placeholder="A memorable line from literature..."
+                className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500 italic"
+              />
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-stone-800 mb-1">
+              {language === 'en' ? 'LinkedIn Profile URL' : 'LinkedIn Profil Linki'}
             </label>
             <input
-              type="text"
-              value={favoriteQuote}
-              onChange={(e) => setFavoriteQuote(e.target.value)}
-              className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500 italic"
+              type="url"
+              value={linkedinUrl}
+              onChange={(e) => setLinkedinUrl(e.target.value)}
+              placeholder="https://www.linkedin.com/in/..."
+              className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
             />
           </div>
 
@@ -413,7 +523,7 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
                 className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-colors cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>{language === 'en' ? 'Delete Member' : 'Üyeyi Sil'}</span>
+                <span>{language === 'en' ? 'Remove Member' : 'Üyeyi Çıkar'}</span>
               </button>
             ) : <div />}
 
@@ -421,15 +531,15 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-medium text-stone-700 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer"
+                className="px-4 py-2 text-xs font-medium text-stone-700 hover:text-stone-900 transition-colors cursor-pointer"
               >
-                {language === 'en' ? 'Cancel' : 'İptal'}
+                {language === 'en' ? 'Cancel' : 'Vazgeç'}
               </button>
               <button
                 type="submit"
-                className="inline-flex items-center gap-1.5 px-5 py-2 text-xs font-semibold text-white bg-stone-900 hover:bg-stone-800 rounded-xl shadow-xs transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#C45B38] hover:bg-[#A84B2C] text-white text-xs font-semibold rounded-xl shadow-md transition-all cursor-pointer"
               >
-                <Save className="w-3.5 h-3.5 text-amber-400" />
+                <Save className="w-4 h-4" />
                 <span>{language === 'en' ? 'Save Member' : 'Üyeyi Kaydet'}</span>
               </button>
             </div>
