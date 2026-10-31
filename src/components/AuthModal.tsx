@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AuthUser, Member } from '../types';
+import { AuthUser } from '../types';
 import { Language, TRANSLATIONS } from '../translations';
 import { MEMBER_CREDENTIALS } from '../data/initialData';
 import { 
@@ -12,12 +12,10 @@ import {
   Users, 
   BookOpen, 
   Mail, 
-  Sparkles,
   ArrowRight,
   Edit3,
   Plus,
-  KeyRound,
-  User
+  KeyRound
 } from 'lucide-react';
 
 interface AuthModalProps {
@@ -98,11 +96,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     performLogin(usernameInput, passwordInput);
   };
 
-  const handleQuickLogin = (username: string, pass: string) => {
-    setUsernameInput(username);
-    setPasswordInput(pass);
-    performLogin(username, pass);
-  };
 
   return (
     <div 
@@ -357,7 +350,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   type="text"
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
-                  placeholder="Gizem123 / admin / Eda123"
+                  placeholder="admin"
+                  autoComplete="username"
                   className="w-full px-3.5 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-stone-500 font-mono"
                 />
               </div>
@@ -371,6 +365,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
                   placeholder="••••••••"
+                  autoComplete="current-password"
                   className="w-full px-3.5 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-stone-500 font-mono"
                 />
               </div>
@@ -389,141 +384,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <span>{t.authSignInBtn}</span>
               </button>
             </form>
-
-            {/* QUICK TEST DEMO LOGINS */}
-            <div className="pt-3 border-t border-stone-200">
-              <p className="text-[11px] font-mono uppercase tracking-wider text-stone-500 font-bold mb-2">
-                {t.authQuickLoginTitle}
-              </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {/* Admin Quick Login */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('admin', 'admin123')}
-                  className="p-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-left transition-colors flex items-center justify-between group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-amber-600" />
-                    <div>
-                      <p className="text-xs font-bold text-amber-950">★ Admin (Eda)</p>
-                      <p className="text-[10px] font-mono text-amber-700">admin / admin123</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono text-amber-800 bg-white/80 px-1.5 py-0.5 rounded border border-amber-200">
-                    Full
-                  </span>
-                </button>
-
-                {/* Gizem Quick Login (Specifically requested in prompt) */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('Gizem123', 'gizem123')}
-                  className="p-2.5 rounded-xl border border-stone-300 bg-stone-50 hover:bg-stone-100 text-left transition-colors flex items-center justify-between group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <img src="/members/gizemyenicikan.jpg" alt="Gizem" className="w-6 h-6 rounded-full object-cover" />
-                    <div>
-                      <p className="text-xs font-bold text-stone-900">Gizem Yeniçıkan</p>
-                      <p className="text-[10px] font-mono text-stone-500">Gizem123 / gizem123</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono text-stone-600 bg-white px-1.5 py-0.5 rounded border border-stone-200">
-                    Member
-                  </span>
-                </button>
-
-                {/* Eda Member Quick Login */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('Eda123', 'eda123')}
-                  className="p-2.5 rounded-xl border border-stone-300 bg-stone-50 hover:bg-stone-100 text-left transition-colors flex items-center justify-between group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <img src="/members/edaaydogan.jpg" alt="Eda" className="w-6 h-6 rounded-full object-cover" />
-                    <div>
-                      <p className="text-xs font-bold text-stone-900">Eda Aydoğan</p>
-                      <p className="text-[10px] font-mono text-stone-500">Eda123 / eda123</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono text-stone-600 bg-white px-1.5 py-0.5 rounded border border-stone-200">
-                    Member
-                  </span>
-                </button>
-
-                {/* Cemre Quick Login */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('Cemre123', 'cemre123')}
-                  className="p-2.5 rounded-xl border border-stone-300 bg-stone-50 hover:bg-stone-100 text-left transition-colors flex items-center justify-between group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <img src="/members/cemresirin.webp?v=2" alt="Cemre" className="w-6 h-6 rounded-full object-cover" />
-                    <div>
-                      <p className="text-xs font-bold text-stone-900">Cemre Şirin</p>
-                      <p className="text-[10px] font-mono text-stone-500">Cemre123 / cemre123</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono text-stone-600 bg-white px-1.5 py-0.5 rounded border border-stone-200">
-                    Member
-                  </span>
-                </button>
-
-                {/* Mert Quick Login */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('Mert123', 'mert123')}
-                  className="p-2.5 rounded-xl border border-stone-300 bg-stone-50 hover:bg-stone-100 text-left transition-colors flex items-center justify-between group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <img src="/members/canmert.jpg" alt="Mert" className="w-6 h-6 rounded-full object-cover" />
-                    <div>
-                      <p className="text-xs font-bold text-stone-900">Mert (Can Mert)</p>
-                      <p className="text-[10px] font-mono text-stone-500">Mert123 / mert123</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono text-stone-600 bg-white px-1.5 py-0.5 rounded border border-stone-200">
-                    Member
-                  </span>
-                </button>
-
-                {/* Ferhat Quick Login */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('Ferhat123', 'ferhat123')}
-                  className="p-2.5 rounded-xl border border-stone-300 bg-stone-50 hover:bg-stone-100 text-left transition-colors flex items-center justify-between group cursor-pointer"
-                >
-                  <div className="flex items-center gap-2">
-                    <img src="/members/ferhatbabacan.webp" alt="Ferhat" className="w-6 h-6 rounded-full object-cover" />
-                    <div>
-                      <p className="text-xs font-bold text-stone-900">Ferhat Babacan</p>
-                      <p className="text-[10px] font-mono text-stone-500">Ferhat123 / ferhat123</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono text-stone-600 bg-white px-1.5 py-0.5 rounded border border-stone-200">
-                    Member
-                  </span>
-                </button>
-
-                {/* Gökçe Quick Login */}
-                <button
-                  type="button"
-                  onClick={() => handleQuickLogin('Gokce123', 'gokce123')}
-                  className="p-2.5 rounded-xl border border-stone-300 bg-stone-50 hover:bg-stone-100 text-left transition-colors flex items-center justify-between group cursor-pointer sm:col-span-2"
-                >
-                  <div className="flex items-center gap-2">
-                    <img src="/members/gokcenuruysal.jpg" alt="Gökçe" className="w-6 h-6 rounded-full object-cover" />
-                    <div>
-                      <p className="text-xs font-bold text-stone-900">Gökçe Nur Uysal</p>
-                      <p className="text-[10px] font-mono text-stone-500">Gokce123 / gokce123</p>
-                    </div>
-                  </div>
-                  <span className="text-[10px] font-mono text-stone-600 bg-white px-1.5 py-0.5 rounded border border-stone-200">
-                    Member
-                  </span>
-                </button>
-              </div>
-            </div>
           </div>
         )}
       </div>

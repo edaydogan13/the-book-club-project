@@ -1,5 +1,6 @@
 import { Book, Member, SalonRSVP, ReferralApplication, SiteContent, UserCredential } from '../types';
 import { Language } from '../translations';
+import { translateTextSync, looksLikeEnglish, hasTurkishChars } from '../utils/translator';
 
 export const AFFILIATE_EMAIL = 'edaydogannn@gmail.com';
 export const AFFILIATE_TAG_TR = 'edaydogannn-21';
@@ -1421,39 +1422,58 @@ export const getBookMonth = (book: Book | null | undefined, lang: Language): str
 export const getMemberRole = (member: Member | null | undefined, lang: Language): string => {
   if (!member) return '';
   if (lang === 'en') {
-    return member.roleEn || member.role || '';
+    if (member.roleEn && !hasTurkishChars(member.roleEn)) return member.roleEn;
+    const translated = translateTextSync(member.roleEn || member.role || '', 'tr', 'en');
+    return translated || member.roleEn || member.role || '';
   }
-  return member.role || member.roleEn || '';
+  // Turkish mode
+  if (member.role && !looksLikeEnglish(member.role)) return member.role;
+  const translated = translateTextSync(member.role || member.roleEn || '', 'en', 'tr');
+  return translated || member.role || member.roleEn || '';
 };
 
 export const getMemberBio = (member: Member | null | undefined, lang: Language): string => {
   if (!member) return '';
   if (lang === 'en') {
-    return member.bioEn || member.bio || '';
+    if (member.bioEn && !hasTurkishChars(member.bioEn)) return member.bioEn;
+    const translated = translateTextSync(member.bioEn || member.bio || '', 'tr', 'en');
+    return translated || member.bioEn || member.bio || '';
   }
-  return member.bio || member.bioEn || '';
+  // Turkish mode
+  if (member.bio && !looksLikeEnglish(member.bio)) return member.bio;
+  const translated = translateTextSync(member.bio || member.bioEn || '', 'en', 'tr');
+  return translated || member.bio || member.bioEn || '';
 };
 
 export const getMemberQuote = (member: Member | null | undefined, lang: Language): string => {
   if (!member) return '';
   if (lang === 'en') {
-    return member.favoriteQuoteEn || member.favoriteQuote || '';
+    if (member.favoriteQuoteEn && !hasTurkishChars(member.favoriteQuoteEn)) return member.favoriteQuoteEn;
+    const translated = translateTextSync(member.favoriteQuoteEn || member.favoriteQuote || '', 'tr', 'en');
+    return translated || member.favoriteQuoteEn || member.favoriteQuote || '';
   }
-  return member.favoriteQuote || member.favoriteQuoteEn || '';
+  // Turkish mode
+  if (member.favoriteQuote && !looksLikeEnglish(member.favoriteQuote)) return member.favoriteQuote;
+  const translated = translateTextSync(member.favoriteQuote || member.favoriteQuoteEn || '', 'en', 'tr');
+  return translated || member.favoriteQuote || member.favoriteQuoteEn || '';
 };
 
 export const getMemberGoal = (member: Member | null | undefined, lang: Language): string => {
   if (!member) return '';
   if (lang === 'en') {
-    return member.readingGoal2026En || member.readingGoal2026 || '';
+    if (member.readingGoal2026En && !hasTurkishChars(member.readingGoal2026En)) return member.readingGoal2026En;
+    return translateTextSync(member.readingGoal2026En || member.readingGoal2026 || '', 'tr', 'en');
   }
-  return member.readingGoal2026 || member.readingGoal2026En || '';
+  // Turkish mode
+  if (member.readingGoal2026 && !looksLikeEnglish(member.readingGoal2026)) return member.readingGoal2026;
+  return translateTextSync(member.readingGoal2026 || member.readingGoal2026En || '', 'en', 'tr');
 };
 
 export const getMemberCurrentlyReading = (member: Member | null | undefined, lang: Language): string => {
   if (!member) return '';
   if (lang === 'en') {
-    return member.currentlyReadingEn || member.currentlyReading || '';
+    if (member.currentlyReadingEn) return member.currentlyReadingEn;
+    return member.currentlyReading || '';
   }
   return member.currentlyReading || member.currentlyReadingEn || '';
 };

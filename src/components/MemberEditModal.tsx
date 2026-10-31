@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Member } from '../types';
 import { Language, TRANSLATIONS } from '../translations';
 import { X, Save, Trash2, Users, Linkedin, Sparkles, Upload, Camera, Globe } from 'lucide-react';
-import { translateTextSync, translateTextWithAI } from '../utils/translator';
+import { translateTextSync, translateTextWithAI, translateMemberBilingualSync } from '../utils/translator';
 
 interface MemberEditModalProps {
   isOpen: boolean;
@@ -97,21 +97,22 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
   useEffect(() => {
     setActiveTab(language === 'en' ? 'en' : 'tr');
     if (memberToEdit) {
-      setName(memberToEdit.name);
-      setLinkedinUrl(memberToEdit.linkedinUrl);
-      setAvatarUrl(memberToEdit.avatarUrl);
-      setJoinedYear(memberToEdit.joinedYear || 'Founding Member (Nov 2025)');
+      const sanitized = translateMemberBilingualSync(memberToEdit);
+      setName(sanitized.name);
+      setLinkedinUrl(sanitized.linkedinUrl);
+      setAvatarUrl(sanitized.avatarUrl);
+      setJoinedYear(sanitized.joinedYear || 'Founding Member (Nov 2025)');
 
-      setRoleTr(memberToEdit.role || '');
-      setRoleEn(memberToEdit.roleEn || memberToEdit.role || '');
-      setBioTr(memberToEdit.bio || '');
-      setBioEn(memberToEdit.bioEn || memberToEdit.bio || '');
-      setGoalTr(memberToEdit.readingGoal2026 || '');
-      setGoalEn(memberToEdit.readingGoal2026En || memberToEdit.readingGoal2026 || '');
-      setReadingTr(memberToEdit.currentlyReading || '');
-      setReadingEn(memberToEdit.currentlyReadingEn || memberToEdit.currentlyReading || '');
-      setQuoteTr(memberToEdit.favoriteQuote || '');
-      setQuoteEn(memberToEdit.favoriteQuoteEn || memberToEdit.favoriteQuote || '');
+      setRoleTr(sanitized.role || '');
+      setRoleEn(sanitized.roleEn || '');
+      setBioTr(sanitized.bio || '');
+      setBioEn(sanitized.bioEn || '');
+      setGoalTr(sanitized.readingGoal2026 || '');
+      setGoalEn(sanitized.readingGoal2026En || '');
+      setReadingTr(sanitized.currentlyReading || '');
+      setReadingEn(sanitized.currentlyReadingEn || '');
+      setQuoteTr(sanitized.favoriteQuote || '');
+      setQuoteEn(sanitized.favoriteQuoteEn || '');
     } else {
       setName('');
       setLinkedinUrl('https://www.linkedin.com/in/');

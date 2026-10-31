@@ -30,7 +30,7 @@ export const TRANSLATIONS = {
     authSignOut: 'Sign Out',
     authOnlyOwnerCanEdit: 'Read-only view. Only this member or Admin can edit this profile.',
     authSwitchToEdit: 'Log in to edit profile',
-    authInvalidCredentials: 'Invalid username or password. Please select a user below.',
+    authInvalidCredentials: 'Invalid username or password.',
     
     // Hero & Cities
     heroCities: 'ISTANBUL · DUBAI · NYC · SAN FRANCISCO · EST. NOV 2025',
@@ -170,7 +170,7 @@ export const TRANSLATIONS = {
     authSignOut: 'Çıkış Yap',
     authOnlyOwnerCanEdit: 'Salt okunur görünüm. Bu profili yalnızca bu üye veya Yönetici düzenleyebilir.',
     authSwitchToEdit: 'Profili düzenlemek için giriş yapın',
-    authInvalidCredentials: 'Hatalı kullanıcı adı veya şifre. Lütfen aşağıdaki hesaplardan birini seçin.',
+    authInvalidCredentials: 'Hatalı kullanıcı adı veya şifre.',
     
     // Hero & Cities
     heroCities: 'İSTANBUL · DUBAİ · NYC · SAN FRANCISCO · KASIM 2025',

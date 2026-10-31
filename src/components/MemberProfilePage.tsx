@@ -57,6 +57,20 @@ const PRESET_COVERS = [
   { label: 'Vintage Paper', url: 'https://images.unsplash.com/photo-1476275466078-4007374efbbe?auto=format&fit=crop&q=80&w=600' },
 ];
 
+const PRESET_GENRES = [
+  'Literary Fiction',
+  'Philosophy',
+  'Existentialism',
+  'Magical Realism',
+  'Dystopian',
+  'Poetry',
+  'World Literature',
+  'Memoir',
+  'Modern Classics',
+  'History',
+  'Psychology',
+];
+
 interface MemberProfilePageProps {
   members: Member[];
   selectedMemberId: string;
@@ -118,6 +132,21 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
   const [editGoal, setEditGoal] = useState(currentMember?.readingGoal2026 || '');
   const [editCurrentReading, setEditCurrentReading] = useState(currentMember?.currentlyReading || '');
   const [editQuote, setEditQuote] = useState(currentMember?.favoriteQuote || '');
+  const [editGenres, setEditGenres] = useState<string[]>(currentMember?.favoriteGenres || []);
+  const [newGenreInput, setNewGenreInput] = useState('');
+
+  const handleAddGenreTag = (tagToAdd: string) => {
+    const trimmed = tagToAdd.trim();
+    if (!trimmed) return;
+    if (!editGenres.some(g => g.toLowerCase() === trimmed.toLowerCase())) {
+      setEditGenres(prev => [...prev, trimmed]);
+    }
+    setNewGenreInput('');
+  };
+
+  const handleRemoveGenreTag = (tagToRemove: string) => {
+    setEditGenres(prev => prev.filter(g => g !== tagToRemove));
+  };
   
   // Profile photo upload state
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -180,18 +209,49 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
     const m = members.find(mem => mem.id === id);
     if (m) {
       setEditName(m.name);
-      setEditRole(language === 'en' ? (m.roleEn || m.role) : m.role);
-      setEditBio(language === 'en' ? (m.bioEn || m.bio) : m.bio);
+      setEditRole(getMemberRole(m, language));
+      setEditBio(getMemberBio(m, language));
       setEditLinkedin(m.linkedinUrl);
       setEditAvatar(m.avatarUrl);
-      setEditGoal(language === 'en' ? (m.readingGoal2026En || m.readingGoal2026) : m.readingGoal2026);
-      setEditCurrentReading(language === 'en' ? (m.currentlyReadingEn || m.currentlyReading) : m.currentlyReading);
-      setEditQuote(language === 'en' ? (m.favoriteQuoteEn || m.favoriteQuote) : m.favoriteQuote);
+      setEditGoal(getMemberGoal(m, language));
+      setEditCurrentReading(getMemberCurrentlyReading(m, language));
+      setEditQuote(getMemberQuote(m, language));
+      setEditGenres(m.favoriteGenres || []);
+      setNewGenreInput('');
       setIsEditing(false);
       setIsAddingBook(false);
       setBookFilter('all');
     }
   };
+
+  // Automatically translate fields when language button is clicked
+  const prevLangRef = React.useRef(language);
+  React.useEffect(() => {
+    if (prevLangRef.current !== language) {
+      const fromLang = prevLangRef.current;
+      const toLang = language;
+      prevLangRef.current = language;
+
+      if (isEditing) {
+        // Automatically translate currently open editing inputs
+        if (editRole) setEditRole(translateTextSync(editRole, fromLang, toLang));
+        if (editBio) setEditBio(translateTextSync(editBio, fromLang, toLang));
+        if (editQuote) setEditQuote(translateTextSync(editQuote, fromLang, toLang));
+        if (editGoal) setEditGoal(translateTextSync(editGoal, fromLang, toLang));
+        if (editCurrentReading) setEditCurrentReading(translateTextSync(editCurrentReading, fromLang, toLang));
+      } else if (currentMember) {
+        setEditName(currentMember.name);
+        setEditRole(getMemberRole(currentMember, toLang));
+        setEditBio(getMemberBio(currentMember, toLang));
+        setEditLinkedin(currentMember.linkedinUrl);
+        setEditAvatar(currentMember.avatarUrl);
+        setEditGoal(getMemberGoal(currentMember, toLang));
+        setEditCurrentReading(getMemberCurrentlyReading(currentMember, toLang));
+        setEditQuote(getMemberQuote(currentMember, toLang));
+        setEditGenres(currentMember.favoriteGenres || []);
+      }
+    }
+  }, [language, isEditing, currentMember]);
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
@@ -238,6 +298,7 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
       roleEn: roleEn,
       bio: bioTr,
       bioEn: bioEn,
+      favoriteGenres: editGenres,
       linkedinUrl: editLinkedin.trim(),
       avatarUrl: editAvatar.trim(),
       readingGoal2026: goalTr,
@@ -250,18 +311,39 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
     onUpdateMember(updated);
     setIsEditing(false);
 
+    // If any field remained identical due to custom non-dictionary text, request AI batch translation in background
+    const toL = language === 'en' ? 'tr' : 'en';
+    const itemsToAiTranslate: Record<string, string> = {};
     if (language === 'en') {
-      translateTextWithAI(bioEn, 'en', 'tr').then(aiBioTr => {
-        if (aiBioTr && aiBioTr !== bioTr) {
-          onUpdateMember({ ...updated, bio: aiBioTr });
-        }
-      });
+      if (roleTr === roleEn && roleEn) itemsToAiTranslate['role'] = roleEn;
+      if (bioTr === bioEn && bioEn) itemsToAiTranslate['bio'] = bioEn;
+      if (quoteTr === quoteEn && quoteEn) itemsToAiTranslate['favoriteQuote'] = quoteEn;
     } else {
-      translateTextWithAI(bioTr, 'tr', 'en').then(aiBioEn => {
-        if (aiBioEn && aiBioEn !== bioEn) {
-          onUpdateMember({ ...updated, bioEn: aiBioEn });
+      if (roleEn === roleTr && roleTr) itemsToAiTranslate['roleEn'] = roleTr;
+      if (bioEn === bioTr && bioTr) itemsToAiTranslate['bioEn'] = bioTr;
+      if (quoteEn === quoteTr && quoteTr) itemsToAiTranslate['favoriteQuoteEn'] = quoteTr;
+    }
+
+    if (Object.keys(itemsToAiTranslate).length > 0) {
+      fetch('/api/translate-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: itemsToAiTranslate, to: toL })
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.translated && typeof data.translated === 'object') {
+          const aiUpdated: Member = { ...updated };
+          if (data.translated.role) aiUpdated.role = data.translated.role;
+          if (data.translated.bio) aiUpdated.bio = data.translated.bio;
+          if (data.translated.favoriteQuote) aiUpdated.favoriteQuote = data.translated.favoriteQuote;
+          if (data.translated.roleEn) aiUpdated.roleEn = data.translated.roleEn;
+          if (data.translated.bioEn) aiUpdated.bioEn = data.translated.bioEn;
+          if (data.translated.favoriteQuoteEn) aiUpdated.favoriteQuoteEn = data.translated.favoriteQuoteEn;
+          onUpdateMember(aiUpdated);
         }
-      });
+      })
+      .catch(() => {});
     }
   };
 
@@ -411,20 +493,12 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
 
   const handleRemoveBookFromMember = (bookId: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const targetBook = currentMember?.books?.find(b => b.id === bookId);
-    const bookTitle = targetBook ? getBookTitle(targetBook, language) : (language === 'en' ? 'this book' : 'bu kitabı');
-    const confirmed = window.confirm(
-      language === 'en' 
-        ? `Remove "${bookTitle}" from ${currentMember.name}'s bookshelf?\n\n(This only removes the book from this member's library; the collective club catalog remains intact.)` 
-        : `"${bookTitle}" kitabını ${currentMember.name}'ın kütüphanesinden kaldırmak istiyor musunuz?\n\n(Bu işlem kitabı yalnızca bu üyenin rafından kaldırır; kulüp arşivi korunur.)`
-    );
-    if (confirmed) {
-      const updated: Member = {
-        ...currentMember,
-        books: currentMember.books.filter(b => b.id !== bookId)
-      };
-      onUpdateMember(updated);
-    }
+    if (!currentMember) return;
+    const updated: Member = {
+      ...currentMember,
+      books: (currentMember.books || []).filter(b => b.id !== bookId)
+    };
+    onUpdateMember(updated);
   };
 
   // Curated check: checks if suggesterId matches or name matches
@@ -521,7 +595,21 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
           {canEditCurrentProfile ? (
             <button
               type="button"
-              onClick={() => setIsEditing(!isEditing)}
+              onClick={() => {
+                if (!isEditing && currentMember) {
+                  setEditName(currentMember.name);
+                  setEditRole(getMemberRole(currentMember, language));
+                  setEditBio(getMemberBio(currentMember, language));
+                  setEditLinkedin(currentMember.linkedinUrl);
+                  setEditAvatar(currentMember.avatarUrl);
+                  setEditGoal(getMemberGoal(currentMember, language));
+                  setEditCurrentReading(getMemberCurrentlyReading(currentMember, language));
+                  setEditQuote(getMemberQuote(currentMember, language));
+                  setEditGenres(currentMember.favoriteGenres || []);
+                  setNewGenreInput('');
+                }
+                setIsEditing(!isEditing);
+              }}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors border cursor-pointer ${
                 isAdmin 
                   ? 'bg-amber-100 hover:bg-amber-200 text-amber-950 border-amber-300 shadow-xs'
@@ -763,6 +851,185 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
                 onChange={(e) => setEditQuote(e.target.value)}
                 className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
               />
+            </div>
+
+            {/* Curatorial Focus & Profile Tags Editor */}
+            <div className="p-4 sm:p-5 bg-stone-50 border border-stone-300 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-xs font-semibold text-stone-900 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-[#C45B38]" />
+                    <span>{language === 'en' ? 'Curatorial Focus & Profile Tags' : 'İlgi Alanları & Profil Tür Etiketleri'}</span>
+                  </label>
+                  <p className="text-[11px] text-stone-500 mt-0.5">
+                    {language === 'en' 
+                      ? 'Add, edit, or remove the reading themes and genres shown on your profile.' 
+                      : 'Profilinizde görünen edebi tür ve okuma ilgi alanlarını ekleyin veya kaldırın.'}
+                  </p>
+                </div>
+                <span className="text-[11px] font-mono text-stone-400">
+                  {editGenres.length} {language === 'en' ? 'tags' : 'etiket'}
+                </span>
+              </div>
+
+              {/* Active Tags Chip List with delete (x) */}
+              <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 bg-white border border-stone-200 rounded-xl">
+                {editGenres.length === 0 ? (
+                  <span className="text-[11px] text-stone-400 italic">
+                    {language === 'en' ? 'No tags yet. Add tags below or pick from recommendations.' : 'Henüz etiket eklenmedi. Aşağıdan ekleyin veya önerilerden seçin.'}
+                  </span>
+                ) : (
+                  editGenres.map((genre) => (
+                    <span
+                      key={genre}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-950 border border-amber-300 rounded-lg text-xs font-medium"
+                    >
+                      <span>{genre}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveGenreTag(genre)}
+                        className="text-amber-700 hover:text-rose-700 p-0.5 rounded-xs transition-colors cursor-pointer"
+                        title={language === 'en' ? `Remove ${genre}` : `${genre} etiketini kaldır`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))
+                )}
+              </div>
+
+              {/* Add Custom Tag Input */}
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={newGenreInput}
+                  onChange={(e) => setNewGenreInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddGenreTag(newGenreInput);
+                    }
+                  }}
+                  placeholder={language === 'en' ? 'Type custom tag (e.g. Continental Philosophy)...' : 'Özel etiket yazın (örn. Kıta Felsefesi)...'}
+                  className="flex-1 text-xs p-2 bg-white border border-stone-300 rounded-lg focus:outline-none focus:border-[#C45B38]"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleAddGenreTag(newGenreInput)}
+                  className="px-3.5 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-semibold cursor-pointer transition-colors whitespace-nowrap shadow-xs"
+                >
+                  {language === 'en' ? '+ Add Tag' : '+ Etiket Ekle'}
+                </button>
+              </div>
+
+              {/* Suggested Preset Tags */}
+              <div className="pt-2 border-t border-stone-200/80">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-stone-400 block mb-1.5">
+                  {language === 'en' ? 'Recommended Literary Tags:' : 'Önerilen Edebi Etiketler:'}
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {PRESET_GENRES.map((preset) => {
+                    const isAdded = editGenres.some(g => g.toLowerCase() === preset.toLowerCase());
+                    return (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => {
+                          if (isAdded) {
+                            handleRemoveGenreTag(preset);
+                          } else {
+                            handleAddGenreTag(preset);
+                          }
+                        }}
+                        className={`text-[11px] px-2 py-0.5 rounded-md border transition-all cursor-pointer flex items-center gap-1 ${
+                          isAdded
+                            ? 'bg-[#C45B38] text-white border-[#C45B38] font-medium shadow-xs'
+                            : 'bg-white hover:bg-stone-100 text-stone-700 border-stone-200'
+                        }`}
+                      >
+                        <span>{preset}</span>
+                        {isAdded ? <Check className="w-2.5 h-2.5" /> : <Plus className="w-2.5 h-2.5 opacity-60" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Manage Profile Bookshelf (Remove Books Option) */}
+            <div className="p-4 sm:p-5 bg-stone-50 border border-stone-300 rounded-2xl space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <label className="text-xs font-semibold text-stone-900 flex items-center gap-1.5">
+                    <Library className="w-4 h-4 text-[#C45B38]" />
+                    <span>{language === 'en' ? 'Manage Bookshelf (Remove Books)' : 'Profil Kitaplığını Yönet (Kitap Kaldırma)'}</span>
+                  </label>
+                  <p className="text-[11px] text-stone-500 mt-0.5">
+                    {language === 'en'
+                      ? `Remove any book from ${currentMember.name}'s library. Collective club anthology stays untouched.`
+                      : `${currentMember.name}'ın kütüphanesinden kitap kaldırın. Ortak kulüp arşivi korunur.`}
+                  </p>
+                </div>
+                <span className="text-[11px] font-mono text-stone-500 font-semibold">
+                  {currentMember.books?.length || 0} {language === 'en' ? 'books on shelf' : 'kitap'}
+                </span>
+              </div>
+
+              {(!currentMember.books || currentMember.books.length === 0) ? (
+                <div className="p-4 bg-white rounded-xl border border-stone-200 text-center text-xs text-stone-400 italic">
+                  {language === 'en' ? 'No books currently on this member shelf.' : 'Bu üyenin rafında henüz kitap bulunmuyor.'}
+                </div>
+              ) : (
+                <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                  {currentMember.books.map((b) => (
+                    <div
+                      key={b.id}
+                      className="p-2.5 bg-white rounded-xl border border-stone-200 flex items-center justify-between gap-3 hover:border-stone-300 transition-colors"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Cover Swatch / Image */}
+                        <div
+                          className="w-8 h-11 rounded-md shrink-0 border border-stone-200 overflow-hidden relative shadow-xs flex items-center justify-center"
+                          style={{ backgroundColor: b.coverColor || '#2C3E50' }}
+                        >
+                          {getBookCover(b, language) ? (
+                            <img
+                              src={getBookCover(b, language)}
+                              alt={getBookTitle(b, language)}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <span className="text-[8px] font-mono text-white font-bold opacity-80 uppercase">
+                              {b.pages}p
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Title and Author */}
+                        <div className="min-w-0">
+                          <p className="font-serif text-xs font-bold text-stone-900 truncate">
+                            {getBookTitle(b, language)}
+                          </p>
+                          <p className="text-[11px] text-stone-500 truncate">
+                            {b.author} · {b.year} · {b.pages} {t.pagesUnit}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Remove Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleRemoveBookFromMember(b.id, e)}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 hover:text-rose-900 border border-rose-200 hover:border-rose-300 rounded-lg text-xs font-medium cursor-pointer transition-colors shrink-0 shadow-xs"
+                        title={language === 'en' ? `Remove "${getBookTitle(b, language)}" from ${currentMember.name}'s bookshelf` : `"${getBookTitle(b, language)}" kitabını ${currentMember.name}'ın rafından kaldır`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                        <span>{language === 'en' ? 'Remove from Shelf' : 'Raftan Kaldır'}</span>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="flex items-center gap-3 pt-2">

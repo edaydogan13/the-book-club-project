@@ -119,10 +119,12 @@ export interface ReferralApplication {
   id: string;
   applicantName: string;
   applicantEmail: string;
-  referringMemberId: string;
-  referringMemberName: string;
-  reason: string;
-  favoriteBook: string;
+  referringMemberId?: string;
+  referringMemberName?: string;
+  reason?: string;
+  favoriteBook?: string;
+  interests?: string;
+  submissionType?: 'newsletter' | 'referral';
   status: 'pending' | 'approved' | 'declined';
   submittedAt: string;
 }

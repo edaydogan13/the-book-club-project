@@ -36,6 +36,7 @@ import {
   updateReferralStatusApi
 } from './utils/api';
 import { safeStorage } from './utils/safeStorage';
+import { translateMemberBilingualSync, autoTranslateFields } from './utils/translator';
 
 export default function App() {
   // Navigation View: 'home' | 'members' | 'book-of-month'
@@ -120,27 +121,25 @@ export default function App() {
     const mergeMembersWithInitial = (memberList: Member[]) => {
       return memberList.map((m: Member) => {
         const initialMatch = INITIAL_MEMBERS.find(im => im.id === m.id);
-        if (initialMatch) {
-          return {
-            ...initialMatch,
-            ...m,
-            role: m.role || initialMatch.role,
-            roleEn: m.roleEn || initialMatch.roleEn,
-            bio: m.bio || initialMatch.bio,
-            bioEn: m.bioEn || initialMatch.bioEn,
-            favoriteQuote: m.favoriteQuote || initialMatch.favoriteQuote,
-            favoriteQuoteEn: m.favoriteQuoteEn || initialMatch.favoriteQuoteEn,
-            readingGoal2026: m.readingGoal2026 || initialMatch.readingGoal2026,
-            readingGoal2026En: m.readingGoal2026En || initialMatch.readingGoal2026En,
-            currentlyReading: m.currentlyReading || initialMatch.currentlyReading,
-            currentlyReadingEn: m.currentlyReadingEn || initialMatch.currentlyReadingEn,
-            avatarUrl: m.id === 'cemre-sirin' && (!m.avatarUrl || m.avatarUrl === '/members/cemresirin.jpg') 
-              ? '/members/cemresirin.webp?v=2' 
-              : (m.avatarUrl || initialMatch.avatarUrl),
-            books: (m.books && m.books.length > 0) ? m.books : initialMatch.books
-          };
-        }
-        return m;
+        const merged: Member = initialMatch ? {
+          ...initialMatch,
+          ...m,
+          role: m.role || initialMatch.role,
+          roleEn: m.roleEn || initialMatch.roleEn,
+          bio: m.bio || initialMatch.bio,
+          bioEn: m.bioEn || initialMatch.bioEn,
+          favoriteQuote: m.favoriteQuote || initialMatch.favoriteQuote,
+          favoriteQuoteEn: m.favoriteQuoteEn || initialMatch.favoriteQuoteEn,
+          readingGoal2026: m.readingGoal2026 || initialMatch.readingGoal2026,
+          readingGoal2026En: m.readingGoal2026En || initialMatch.readingGoal2026En,
+          currentlyReading: m.currentlyReading || initialMatch.currentlyReading,
+          currentlyReadingEn: m.currentlyReadingEn || initialMatch.currentlyReadingEn,
+          avatarUrl: m.id === 'cemre-sirin' && (!m.avatarUrl || m.avatarUrl === '/members/cemresirin.jpg') 
+            ? '/members/cemresirin.webp?v=2' 
+            : (m.avatarUrl || initialMatch.avatarUrl),
+          books: (m.books && m.books.length > 0) ? m.books : initialMatch.books
+        } : m;
+        return translateMemberBilingualSync(merged);
       });
     };
 
@@ -230,7 +229,7 @@ export default function App() {
         setBooks(normalizeBooks(serverData.books));
       }
       if (Array.isArray(serverData.members) && serverData.members.length > 0) {
-        setMembers(serverData.members);
+        setMembers(serverData.members.map(m => translateMemberBilingualSync(m)));
       }
       if (serverData.siteContent && serverData.siteContent.brandName) {
         setSiteContent(serverData.siteContent);
@@ -477,16 +476,17 @@ export default function App() {
 
   // Handler: Update Member Profile (Awaited with optimistic update and rollback)
   const handleUpdateMember = async (updatedMember: Member) => {
+    const sanitized = translateMemberBilingualSync(updatedMember);
     const prevMembers = members;
     isMutatingRef.current = true;
     setSyncStatus('syncing');
 
-    setMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
+    setMembers(prev => prev.map(m => m.id === sanitized.id ? sanitized : m));
 
     try {
-      const res = await saveMemberApi(updatedMember);
+      const res = await saveMemberApi(sanitized);
       if (res.success) {
-        if (Array.isArray(res.members)) setMembers(res.members);
+        if (Array.isArray(res.members)) setMembers(res.members.map(m => translateMemberBilingualSync(m)));
         if (res.lastUpdated) lastServerTimestampRef.current = res.lastUpdated;
         setSyncStatus('synced');
         showToast(language === 'en' ? 'Member profile updated & synced' : 'Üye profili güncellendi ve eşitlendi', 'success');
@@ -744,6 +744,7 @@ export default function App() {
 
   const toggleLanguage = () => {
     setLanguage(prev => (prev === 'en' ? 'tr' : 'en'));
+    setMembers(prev => prev.map(m => translateMemberBilingualSync(m)));
   };
 
   const heroCitiesText = language === 'en'
@@ -1079,6 +1080,8 @@ export default function App() {
         referrals={referrals}
         onSubmitReferral={handleSubmitReferral}
         onUpdateStatus={handleUpdateReferralStatus}
+        currentUser={currentUser}
+        isAdmin={isAdmin}
       />
 
       {/* Member & Administrator Access Portal Modal */}
