@@ -40,12 +40,12 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   onOpenAddBook,
   onOpenAddMember,
 }) => {
-  if (!isOpen) return null;
-
   const t = TRANSLATIONS[language];
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [successNotice, setSuccessNotice] = useState(false);
+
+  if (!isOpen) return null;
 
   const handleLogin = (e?: React.FormEvent) => {
     if (e) e.preventDefault();

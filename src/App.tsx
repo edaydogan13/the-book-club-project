@@ -21,6 +21,7 @@ import { AuthModal } from './components/AuthModal';
 import { EditSiteContentModal } from './components/EditSiteContentModal';
 import { BookEditModal } from './components/BookEditModal';
 import { MemberEditModal } from './components/MemberEditModal';
+import { WorkspaceModal } from './components/WorkspaceModal';
 import { AdminFloatingBar } from './components/AdminFloatingBar';
 import { Edit3, Plus, Sparkles, CloudCheck, RefreshCw, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { 
@@ -50,6 +51,7 @@ export default function App() {
   const [modalInitialVideoUpload, setModalInitialVideoUpload] = useState<boolean>(false);
   const [isNewsletterOpen, setIsNewsletterOpen] = useState<boolean>(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
+  const [isWorkspaceOpen, setIsWorkspaceOpen] = useState<boolean>(false);
 
   const handleOpenBookModal = (book: Book, openVideoUpload?: boolean, fromMemberId?: string) => {
     setActiveBookModal(book);
@@ -203,18 +205,23 @@ export default function App() {
     }, 3500);
   }, []);
 
-  // Guard against overwriting state during active modal editing or in-flight mutations
+  // Guard against overwriting state during active modal/inline editing or in-flight mutations
   const isMutatingRef = useRef(false);
   const lastServerTimestampRef = useRef<string | null>(null);
-  const isAnyEditModalOpen = isBookEditModalOpen || isMemberEditModalOpen || isSiteContentModalOpen;
+  const membersRef = useRef<Member[]>(members);
+  membersRef.current = members;
+  const [isInlineMemberEditing, setIsInlineMemberEditing] = useState(false);
+  const isAnyEditModalOpen = isBookEditModalOpen || isMemberEditModalOpen || isSiteContentModalOpen || isInlineMemberEditing;
+  const isAnyEditUiOpenRef = useRef(isAnyEditModalOpen);
+  isAnyEditUiOpenRef.current = isAnyEditModalOpen;
 
   // Shared Backend Store Synchronization
   const syncWithBackend = useCallback(async (force = false) => {
     // If a mutation is currently in-flight, avoid racing with server response
     if (isMutatingRef.current && !force) return;
 
-    // If an edit modal is actively open, prevent background ticks from resetting form fields
-    if (isAnyEditModalOpen && !force) return;
+    // If an edit modal or inline profile editor is actively open, prevent background ticks from resetting form fields
+    if (isAnyEditUiOpenRef.current && !force) return;
 
     try {
       const serverData = await fetchClubData();
@@ -245,7 +252,7 @@ export default function App() {
       console.warn('Sync with backend failed:', err);
       setSyncStatus('error');
     }
-  }, [isAnyEditModalOpen]);
+  }, []);
 
   // Multi-session listener: Moderate 10s polling, window focus, visibility change, and BroadcastChannel
   useEffect(() => {
@@ -477,11 +484,18 @@ export default function App() {
   // Handler: Update Member Profile (Awaited with optimistic update and rollback)
   const handleUpdateMember = async (updatedMember: Member) => {
     const sanitized = translateMemberBilingualSync(updatedMember);
-    const prevMembers = members;
+    const prevMembers = membersRef.current;
     isMutatingRef.current = true;
     setSyncStatus('syncing');
 
     setMembers(prev => prev.map(m => m.id === sanitized.id ? sanitized : m));
+    if (currentUser?.memberId === sanitized.id) {
+      setCurrentUser(prev => prev ? {
+        ...prev,
+        displayName: sanitized.name,
+        avatarUrl: sanitized.avatarUrl,
+      } : prev);
+    }
 
     try {
       const res = await saveMemberApi(sanitized);
@@ -503,6 +517,46 @@ export default function App() {
       isMutatingRef.current = false;
     }
   };
+
+  // Handler: Non-clobbering background patch for AI translation refinements
+  const handlePatchMemberFields = useCallback(async (
+    memberId: string,
+    patch: Partial<Member>,
+    bookTitlePatch?: { bookId: string; title?: string; titleEn?: string }
+  ) => {
+    const latestMember = membersRef.current.find(m => m.id === memberId);
+    if (!latestMember) return;
+
+    const patchedMember: Member = {
+      ...latestMember,
+      ...patch,
+      ...(bookTitlePatch
+        ? {
+            books: (latestMember.books || []).map(b =>
+              b.id === bookTitlePatch.bookId
+                ? {
+                    ...b,
+                    ...(bookTitlePatch.title ? { title: bookTitlePatch.title } : {}),
+                    ...(bookTitlePatch.titleEn ? { titleEn: bookTitlePatch.titleEn } : {}),
+                  }
+                : b
+            ),
+          }
+        : {}),
+    };
+
+    const sanitized = translateMemberBilingualSync(patchedMember);
+    setMembers(prev => prev.map(m => m.id === memberId ? sanitized : m));
+
+    try {
+      const res = await saveMemberApi(sanitized);
+      if (res.success && res.lastUpdated) {
+        lastServerTimestampRef.current = res.lastUpdated;
+      }
+    } catch {
+      // Background translation patch is best-effort
+    }
+  }, []);
 
   // Handler: Site Content update (Awaited with optimistic update and rollback)
   const handleSaveSiteContent = async (updated: SiteContent) => {
@@ -577,7 +631,9 @@ export default function App() {
           const normalized = normalizeBooks(res.books);
           setBooks(normalized);
           const updatedActive = normalized.find(b => b.id === bookToSave.id);
-          if (updatedActive) setActiveBookModal(updatedActive);
+          if (updatedActive) {
+            setActiveBookModal(prev => (prev && prev.id === bookToSave.id ? updatedActive : prev));
+          }
         }
         if (res.lastUpdated) lastServerTimestampRef.current = res.lastUpdated;
         setSyncStatus('synced');
@@ -674,23 +730,31 @@ export default function App() {
   };
 
   const handleSaveMember = async (memberToSave: Member) => {
-    const prevMembers = members;
+    const sanitized = translateMemberBilingualSync(memberToSave);
+    const prevMembers = membersRef.current;
     isMutatingRef.current = true;
     setSyncStatus('syncing');
 
     setMembers(prev => {
-      const exists = prev.some(m => m.id === memberToSave.id);
+      const exists = prev.some(m => m.id === sanitized.id);
       if (exists) {
-        return prev.map(m => m.id === memberToSave.id ? memberToSave : m);
+        return prev.map(m => m.id === sanitized.id ? sanitized : m);
       }
-      return [...prev, memberToSave];
+      return [...prev, sanitized];
     });
-    setSelectedMemberId(memberToSave.id);
+    setSelectedMemberId(sanitized.id);
+    if (currentUser?.memberId === sanitized.id) {
+      setCurrentUser(prev => prev ? {
+        ...prev,
+        displayName: sanitized.name,
+        avatarUrl: sanitized.avatarUrl,
+      } : prev);
+    }
 
     try {
-      const res = await saveMemberApi(memberToSave);
+      const res = await saveMemberApi(sanitized);
       if (res.success) {
-        if (Array.isArray(res.members)) setMembers(res.members);
+        if (Array.isArray(res.members)) setMembers(res.members.map(m => translateMemberBilingualSync(m)));
         if (res.lastUpdated) lastServerTimestampRef.current = res.lastUpdated;
         setSyncStatus('synced');
         showToast(language === 'en' ? 'Member saved & synced' : 'Üye kaydedildi ve eşitlendi', 'success');
@@ -829,6 +893,7 @@ export default function App() {
         brandName={siteContent.brandName}
         syncStatus={syncStatus}
         onManualSync={() => syncWithBackend(true)}
+        onOpenWorkspace={() => setIsWorkspaceOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -1016,6 +1081,8 @@ export default function App() {
               onDeleteMember={handleDeleteMember}
               clubBooks={books}
               onAddBookToClub={handleSaveBook}
+              onPatchMemberFields={handlePatchMemberFields}
+              onEditingChange={setIsInlineMemberEditing}
             />
           </div>
         )}
@@ -1144,6 +1211,13 @@ export default function App() {
         memberToEdit={memberToEdit}
         onSaveMember={handleSaveMember}
         onDeleteMember={handleDeleteMember}
+        language={language}
+      />
+
+      {/* Google Workspace & Firebase Hub Modal */}
+      <WorkspaceModal
+        isOpen={isWorkspaceOpen}
+        onClose={() => setIsWorkspaceOpen(false)}
         language={language}
       />
 

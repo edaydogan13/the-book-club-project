@@ -434,76 +434,69 @@ export async function autoTranslateFields<T extends Record<string, any>>(
   return result;
 }
 
-// Synchronously ensure all member bilingual fields are populated and translated
+// Synchronously ensure missing or identical member bilingual fields are populated without clobbering distinct user edits
 export function translateMemberBilingualSync(member: Member): Member {
-  // Check role
-  let roleTr = member.role || '';
-  let roleEn = member.roleEn || '';
-  if (looksLikeEnglish(roleTr)) {
-    if (!roleEn) roleEn = roleTr;
-    roleTr = translateTextSync(roleTr, 'en', 'tr');
-  } else if (!roleEn || roleEn === roleTr) {
-    roleEn = translateTextSync(roleTr, 'tr', 'en');
-  } else if (hasTurkishChars(roleEn)) {
-    roleEn = translateTextSync(roleEn, 'tr', 'en');
-  }
+  // Helper to resolve a bilingual pair without overwriting explicitly distinct edits
+  const resolvePair = (trVal: string | undefined, enVal: string | undefined) => {
+    let tr = trVal || '';
+    let en = enVal || '';
 
-  // Check bio
-  let bioTr = member.bio || '';
-  let bioEn = member.bioEn || '';
-  if (looksLikeEnglish(bioTr)) {
-    if (!bioEn) bioEn = bioTr;
-    bioTr = translateTextSync(bioTr, 'en', 'tr');
-  } else if (!bioEn || bioEn === bioTr) {
-    bioEn = translateTextSync(bioTr, 'tr', 'en');
-  } else if (hasTurkishChars(bioEn)) {
-    bioEn = translateTextSync(bioEn, 'tr', 'en');
-  }
+    if (tr && !en) {
+      if (looksLikeEnglish(tr)) {
+        en = tr;
+        tr = translateTextSync(tr, 'en', 'tr');
+      } else {
+        en = translateTextSync(tr, 'tr', 'en');
+      }
+    } else if (!tr && en) {
+      tr = translateTextSync(en, 'en', 'tr');
+    } else if (tr && en && tr === en) {
+      if (looksLikeEnglish(tr)) {
+        tr = translateTextSync(tr, 'en', 'tr');
+      } else {
+        en = translateTextSync(tr, 'tr', 'en');
+      }
+    } else if (tr && en) {
+      // Only translate from dictionary if exact phrase matches exist for stale copies
+      const dictEn = translateTextSync(tr, 'tr', 'en');
+      const dictTr = translateTextSync(en, 'en', 'tr');
+      if (looksLikeEnglish(tr) && dictTr !== tr) tr = dictTr;
+      if (hasTurkishChars(en) && !looksLikeEnglish(en) && dictEn !== en) en = dictEn;
+    }
 
-  // Check quote
-  let quoteTr = member.favoriteQuote || '';
-  let quoteEn = member.favoriteQuoteEn || '';
-  if (looksLikeEnglish(quoteTr)) {
-    if (!quoteEn) quoteEn = quoteTr;
-    quoteTr = translateTextSync(quoteTr, 'en', 'tr');
-  } else if (!quoteEn || quoteEn === quoteTr) {
-    quoteEn = translateTextSync(quoteTr, 'tr', 'en');
-  } else if (hasTurkishChars(quoteEn)) {
-    quoteEn = translateTextSync(quoteEn, 'tr', 'en');
-  }
+    return { tr, en };
+  };
 
-  // Check goal
-  let goalTr = member.readingGoal2026 || '';
-  let goalEn = member.readingGoal2026En || '';
-  if (looksLikeEnglish(goalTr)) {
-    if (!goalEn) goalEn = goalTr;
-    goalTr = translateTextSync(goalTr, 'en', 'tr');
-  } else if (!goalEn || goalEn === goalTr) {
-    goalEn = translateTextSync(goalTr, 'tr', 'en');
-  } else if (hasTurkishChars(goalEn)) {
-    goalEn = translateTextSync(goalEn, 'tr', 'en');
-  }
+  const role = resolvePair(member.role, member.roleEn);
+  const bio = resolvePair(member.bio, member.bioEn);
+  const quote = resolvePair(member.favoriteQuote, member.favoriteQuoteEn);
+  const goal = resolvePair(member.readingGoal2026, member.readingGoal2026En);
 
-  // Check currently reading
   let readingTr = member.currentlyReading || '';
   let readingEn = member.currentlyReadingEn || '';
-  if (!readingEn || readingEn === readingTr) {
+  if (readingTr && !readingEn) {
     readingEn = translateTextSync(readingTr, 'tr', 'en');
-  }
-  if (!readingTr || readingTr === readingEn) {
+  } else if (!readingTr && readingEn) {
     readingTr = translateTextSync(readingEn, 'en', 'tr');
+  } else if (readingTr && readingEn && readingTr === readingEn) {
+    const trAttempt = translateTextSync(readingEn, 'en', 'tr');
+    if (trAttempt !== readingEn) {
+      readingTr = trAttempt;
+    } else {
+      readingEn = translateTextSync(readingTr, 'tr', 'en');
+    }
   }
 
   return {
     ...member,
-    role: roleTr,
-    roleEn,
-    bio: bioTr,
-    bioEn,
-    favoriteQuote: quoteTr,
-    favoriteQuoteEn: quoteEn,
-    readingGoal2026: goalTr,
-    readingGoal2026En: goalEn,
+    role: role.tr,
+    roleEn: role.en,
+    bio: bio.tr,
+    bioEn: bio.en,
+    favoriteQuote: quote.tr,
+    favoriteQuoteEn: quote.en,
+    readingGoal2026: goal.tr,
+    readingGoal2026En: goal.en,
     currentlyReading: readingTr,
     currentlyReadingEn: readingEn,
   };

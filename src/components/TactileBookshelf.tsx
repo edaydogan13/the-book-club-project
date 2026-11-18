@@ -95,14 +95,14 @@ export const TactileBookshelf: React.FC<TactileBookshelfProps> = ({
         {/* View Mode & Filter Controls */}
         <div className="flex flex-wrap items-center gap-2.5">
           {/* Search Input */}
-          <div className="relative">
+          <div className="relative flex-1 min-w-[160px] sm:flex-none">
             <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t.shelfSearchPlaceholder}
-              className="pl-8 pr-3 py-1.5 text-xs bg-stone-100 hover:bg-stone-50 focus:bg-white border border-stone-200 rounded-lg text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-400 w-44 sm:w-52 transition-all"
+              className="pl-8 pr-3 py-1.5 text-xs bg-stone-100 hover:bg-stone-50 focus:bg-white border border-stone-200 rounded-lg text-stone-800 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-400 w-full sm:w-52 transition-all"
             />
           </div>
 
@@ -258,7 +258,7 @@ export const TactileBookshelf: React.FC<TactileBookshelfProps> = ({
         </div>
       ) : (
         /* Flat Cover Grid View */
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6 sm:gap-8 p-6 bg-stone-50/50 rounded-2xl border border-stone-200">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-6 md:gap-8 p-3 sm:p-6 bg-stone-50/50 rounded-2xl border border-stone-200">
           {filteredBooks.map((book) => (
             <TactileBookCover
               key={book.id}

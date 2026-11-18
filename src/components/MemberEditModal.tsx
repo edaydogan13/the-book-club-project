@@ -3,6 +3,7 @@ import { Member } from '../types';
 import { Language, TRANSLATIONS } from '../translations';
 import { X, Save, Trash2, Users, Linkedin, Sparkles, Upload, Camera, Globe } from 'lucide-react';
 import { translateTextSync, translateTextWithAI, translateMemberBilingualSync } from '../utils/translator';
+import { compressImageFileToDataUrl } from '../utils/imageUpload';
 
 interface MemberEditModalProps {
   isOpen: boolean;
@@ -51,31 +52,30 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
   const [quoteEn, setQuoteEn] = useState('');
 
   const [isTranslating, setIsTranslating] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   // Upload photo states
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const handlePhotoUpload = (file: File) => {
+  const handlePhotoUpload = async (file: File) => {
     setUploadError(null);
     if (!file.type.startsWith('image/')) {
       setUploadError(language === 'en' ? 'Please select a valid image file.' : 'Lütfen geçerli bir görsel dosyası seçin.');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError(language === 'en' ? 'Image size must be under 5MB.' : 'Görsel boyutu 5MB altında olmalıdır.');
+    if (file.size > 15 * 1024 * 1024) {
+      setUploadError(language === 'en' ? 'Image size must be under 15MB.' : 'Görsel boyutu 15MB altında olmalıdır.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      if (dataUrl) {
-        setAvatarUrl(dataUrl);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compactDataUrl = await compressImageFileToDataUrl(file, 640, 0.84);
+      setAvatarUrl(compactDataUrl);
+    } catch {
+      setUploadError(language === 'en' ? 'Could not process image file. Please try another photo.' : 'Görsel işlenemedi. Lütfen başka bir fotoğraf deneyin.');
+    }
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,6 +96,8 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
 
   useEffect(() => {
     setActiveTab(language === 'en' ? 'en' : 'tr');
+    setConfirmDelete(false);
+    setUploadError(null);
     if (memberToEdit) {
       const sanitized = translateMemberBilingualSync(memberToEdit);
       setName(sanitized.name);
@@ -192,6 +194,11 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
     const finalQuoteTr = quoteTr.trim() || (quoteEn.trim() ? translateTextSync(quoteEn.trim(), 'en', 'tr') : '');
     const finalQuoteEn = quoteEn.trim() || (quoteTr.trim() ? translateTextSync(quoteTr.trim(), 'tr', 'en') : '');
 
+    let normalizedLinkedin = linkedinUrl.trim();
+    if (normalizedLinkedin && !/^https?:\/\//i.test(normalizedLinkedin)) {
+      normalizedLinkedin = `https://${normalizedLinkedin}`;
+    }
+
     const updated: Member = {
       ...(memberToEdit || {
         favoriteGenres: ['Literary Fiction', 'Philosophy'],
@@ -203,7 +210,7 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
       roleEn: finalRoleEn,
       bio: finalBioTr,
       bioEn: finalBioEn,
-      linkedinUrl: linkedinUrl.trim(),
+      linkedinUrl: normalizedLinkedin,
       avatarUrl: avatarUrl.trim() || '/members/edaaydogan.jpg',
       readingGoal2026: finalGoalTr,
       readingGoal2026En: finalGoalEn,
@@ -218,12 +225,11 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
     onClose();
   };
 
-  const handleDelete = () => {
+  const handleConfirmDelete = () => {
     if (memberToEdit && onDeleteMember) {
-      if (window.confirm(language === 'en' ? `Remove ${memberToEdit.name} from club members?` : `${memberToEdit.name} kulüp üyelerinden çıkarılsın mı?`)) {
-        onDeleteMember(memberToEdit.id);
-        onClose();
-      }
+      onDeleteMember(memberToEdit.id);
+      setConfirmDelete(false);
+      onClose();
     }
   };
 
@@ -381,6 +387,9 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
                   <Upload className="w-3.5 h-3.5" />
                   <span>{language === 'en' ? 'Upload Photo' : 'Fotoğraf Yükle'}</span>
                 </button>
+                {uploadError && (
+                  <p className="text-[11px] text-rose-600 font-medium mt-1.5">{uploadError}</p>
+                )}
               </div>
             </div>
 
@@ -507,7 +516,7 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
               {language === 'en' ? 'LinkedIn Profile URL' : 'LinkedIn Profil Linki'}
             </label>
             <input
-              type="url"
+              type="text"
               value={linkedinUrl}
               onChange={(e) => setLinkedinUrl(e.target.value)}
               placeholder="https://www.linkedin.com/in/..."
@@ -516,16 +525,36 @@ export const MemberEditModal: React.FC<MemberEditModalProps> = ({
           </div>
 
           {/* Footer Controls */}
-          <div className="pt-4 border-t border-stone-200 flex items-center justify-between gap-3">
+          <div className="pt-4 border-t border-stone-200 flex flex-wrap items-center justify-between gap-3">
             {!isNew && onDeleteMember ? (
-              <button
-                type="button"
-                onClick={handleDelete}
-                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-colors cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>{language === 'en' ? 'Remove Member' : 'Üyeyi Çıkar'}</span>
-              </button>
+              confirmDelete ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleConfirmDelete}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{language === 'en' ? 'Confirm Remove' : 'Çıkarmayı Onayla'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDelete(false)}
+                    className="px-2.5 py-2 text-xs font-medium text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-xl cursor-pointer"
+                  >
+                    {language === 'en' ? 'Cancel' : 'Vazgeç'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{language === 'en' ? 'Remove Member' : 'Üyeyi Çıkar'}</span>
+                </button>
+              )
             ) : <div />}
 
             <div className="flex items-center gap-2">

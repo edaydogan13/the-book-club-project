@@ -56,6 +56,30 @@ async function startServer() {
   const portFromArg = portArgIndex !== -1 ? parseInt(process.argv[portArgIndex + 1], 10) : undefined;
   const port = portFromArg || 3000;
 
+  async function generateTranslationWithFallback(
+    ai: GoogleGenAI,
+    prompt: string,
+    config?: Record<string, any>
+  ): Promise<string | null> {
+    const models = ['gemini-4-hydrogen', 'gemini-3.1-flash-lite'];
+    for (const model of models) {
+      try {
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error(`Timeout calling ${model}`)), 6000)
+        );
+        const response = await Promise.race([
+          ai.models.generateContent({ model, contents: prompt, ...(config ? { config } : {}) }),
+          timeoutPromise,
+        ]);
+        const text = response?.text?.trim();
+        if (text) return text;
+      } catch (err: any) {
+        console.warn(`Translation attempt with ${model} failed:`, err?.message || err);
+      }
+    }
+    return null;
+  }
+
   // Single text translation endpoint
   app.post('/api/translate', async (req, res) => {
     try {
@@ -66,7 +90,7 @@ async function startServer() {
 
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
-        return res.json({ translatedText: text, note: 'Fallback: no API key' });
+        return res.json({ translatedText: text, fallback: true, note: 'Fallback: no API key' });
       }
 
       const ai = new GoogleGenAI({
@@ -85,16 +109,15 @@ Keep proper names, authors, and formatting intact. Return ONLY the translated te
 Text to translate:
 ${text}`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-      });
-
-      const translatedText = response.text?.trim() || text;
-      res.json({ translatedText });
+      const aiText = await generateTranslationWithFallback(ai, prompt);
+      if (aiText) {
+        return res.json({ translatedText: aiText });
+      }
+      return res.json({ translatedText: text, fallback: true });
     } catch (err: any) {
       console.error('Translation error:', err?.message || err);
-      res.status(500).json({ error: 'Translation failed', details: String(err) });
+      const fallbackText = typeof req.body?.text === 'string' ? req.body.text : '';
+      return res.json({ translatedText: fallbackText, fallback: true });
     }
   });
 
@@ -108,7 +131,7 @@ ${text}`;
 
       const apiKey = process.env.GEMINI_API_KEY;
       if (!apiKey) {
-        return res.json({ translated: items });
+        return res.json({ translated: items, fallback: true });
       }
 
       const ai = new GoogleGenAI({
@@ -127,26 +150,25 @@ Preserve all keys exactly. Output strictly valid JSON matching the exact key str
 JSON:
 ${JSON.stringify(items)}`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-3.8-flash',
-        contents: prompt,
-        config: {
-          responseMimeType: 'application/json',
-        },
+      const aiText = await generateTranslationWithFallback(ai, prompt, {
+        responseMimeType: 'application/json',
       });
 
       let translated = items;
-      try {
-        const text = response.text?.trim() || '{}';
-        translated = JSON.parse(text);
-      } catch (parseErr) {
-        console.error('Failed to parse translation JSON', parseErr);
+      let fallback = true;
+      if (aiText) {
+        try {
+          translated = JSON.parse(aiText);
+          fallback = false;
+        } catch (parseErr) {
+          console.error('Failed to parse translation JSON', parseErr);
+        }
       }
 
-      res.json({ translated });
+      res.json({ translated, ...(fallback ? { fallback: true } : {}) });
     } catch (err: any) {
       console.error('Batch translation error:', err?.message || err);
-      res.status(500).json({ error: 'Batch translation failed' });
+      res.json({ translated: req.body?.items || {}, fallback: true });
     }
   });
 

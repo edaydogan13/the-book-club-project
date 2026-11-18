@@ -11,6 +11,7 @@ import {
   getBookCover 
 } from '../data/initialData';
 import { translateTextSync, translateTextWithAI } from '../utils/translator';
+import { compressImageFileToDataUrl } from '../utils/imageUpload';
 import { 
   Linkedin, 
   ExternalLink, 
@@ -86,6 +87,8 @@ interface MemberProfilePageProps {
   onDeleteMember?: (memberId: string) => void;
   clubBooks?: Book[];
   onAddBookToClub?: (book: Book) => void;
+  onPatchMemberFields?: (memberId: string, patch: Partial<Member>, bookTitlePatch?: { bookId: string; title?: string; titleEn?: string }) => void;
+  onEditingChange?: (editing: boolean) => void;
 }
 
 export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
@@ -103,6 +106,8 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
   onDeleteMember,
   clubBooks = [],
   onAddBookToClub,
+  onPatchMemberFields,
+  onEditingChange,
 }) => {
   const t = TRANSLATIONS[language];
   const safeMembers = Array.isArray(members) ? members : [];
@@ -112,6 +117,7 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [isAddingBook, setIsAddingBook] = useState(false);
   const [isRemoveMode, setIsRemoveMode] = useState(false);
+  const [confirmDeleteMember, setConfirmDeleteMember] = useState(false);
   const [bookFilter, setBookFilter] = useState<'all' | 'extra' | 'curated' | 'club'>('all');
   const [shelfViewMode, setShelfViewMode] = useState<'spines' | 'covers'>('spines');
   const shelfScrollRef = React.useRef<HTMLDivElement>(null);
@@ -153,25 +159,23 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const handlePhotoUpload = (file: File) => {
+  const handlePhotoUpload = async (file: File) => {
     setUploadError(null);
     if (!file.type.startsWith('image/')) {
       setUploadError(language === 'en' ? 'Please select a valid image file.' : 'Lütfen geçerli bir görsel dosyası seçin.');
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError(language === 'en' ? 'Image size must be under 5MB.' : 'Görsel boyutu 5MB altında olmalıdır.');
+    if (file.size > 15 * 1024 * 1024) {
+      setUploadError(language === 'en' ? 'Image size must be under 15MB.' : 'Görsel boyutu 15MB altında olmalıdır.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const dataUrl = e.target?.result as string;
-      if (dataUrl) {
-        setEditAvatar(dataUrl);
-      }
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compactDataUrl = await compressImageFileToDataUrl(file, 640, 0.84);
+      setEditAvatar(compactDataUrl);
+    } catch {
+      setUploadError(language === 'en' ? 'Could not process image file. Please try another photo.' : 'Görsel işlenemedi. Lütfen başka bir fotoğraf deneyin.');
+    }
   };
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -203,11 +207,41 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
   const [newBookRating, setNewBookRating] = useState(5);
   const [alsoAddToClub, setAlsoAddToClub] = useState(true);
 
+  // Notify parent when inline profile editing starts/stops
+  React.useEffect(() => {
+    onEditingChange?.(isEditing);
+    return () => onEditingChange?.(false);
+  }, [isEditing, onEditingChange]);
+
+  // Sync edit form whenever selected member changes (including from Header / AuthModal / Home)
+  const prevMemberIdRef = React.useRef(currentMember?.id);
+  React.useEffect(() => {
+    if (currentMember && prevMemberIdRef.current !== currentMember.id) {
+      prevMemberIdRef.current = currentMember.id;
+      setEditName(currentMember.name);
+      setEditRole(getMemberRole(currentMember, language));
+      setEditBio(getMemberBio(currentMember, language));
+      setEditLinkedin(currentMember.linkedinUrl);
+      setEditAvatar(currentMember.avatarUrl);
+      setEditGoal(getMemberGoal(currentMember, language));
+      setEditCurrentReading(getMemberCurrentlyReading(currentMember, language));
+      setEditQuote(getMemberQuote(currentMember, language));
+      setEditGenres(currentMember.favoriteGenres || []);
+      setNewGenreInput('');
+      setConfirmDeleteMember(false);
+      setIsEditing(false);
+      setIsAddingBook(false);
+      setIsRemoveMode(false);
+      setBookFilter('all');
+    }
+  }, [currentMember?.id, language]);
+
   // Sync edit form when switching members
   const handleSelectMember = (id: string) => {
     onSelectMember(id);
     const m = members.find(mem => mem.id === id);
     if (m) {
+      prevMemberIdRef.current = m.id;
       setEditName(m.name);
       setEditRole(getMemberRole(m, language));
       setEditBio(getMemberBio(m, language));
@@ -218,8 +252,10 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
       setEditQuote(getMemberQuote(m, language));
       setEditGenres(m.favoriteGenres || []);
       setNewGenreInput('');
+      setConfirmDeleteMember(false);
       setIsEditing(false);
       setIsAddingBook(false);
+      setIsRemoveMode(false);
       setBookFilter('all');
     }
   };
@@ -233,7 +269,6 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
       prevLangRef.current = language;
 
       if (isEditing) {
-        // Automatically translate currently open editing inputs
         if (editRole) setEditRole(translateTextSync(editRole, fromLang, toLang));
         if (editBio) setEditBio(translateTextSync(editBio, fromLang, toLang));
         if (editQuote) setEditQuote(translateTextSync(editQuote, fromLang, toLang));
@@ -255,6 +290,22 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!currentMember) return;
+
+    // Auto-include any pending typed tag if the user didn't click "+ Add Tag" before clicking Save
+    let finalGenres = [...editGenres];
+    const pendingTag = newGenreInput.trim();
+    if (pendingTag && !finalGenres.some(g => g.toLowerCase() === pendingTag.toLowerCase())) {
+      finalGenres.push(pendingTag);
+      setEditGenres(finalGenres);
+      setNewGenreInput('');
+    }
+
+    // Normalize LinkedIn URL cleanly
+    let normalizedLinkedin = editLinkedin.trim();
+    if (normalizedLinkedin && !/^https?:\/\//i.test(normalizedLinkedin)) {
+      normalizedLinkedin = `https://${normalizedLinkedin}`;
+    }
 
     let roleTr = '';
     let roleEn = '';
@@ -293,14 +344,14 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
 
     const updated: Member = {
       ...currentMember,
-      name: editName.trim(),
+      name: editName.trim() || currentMember.name,
       role: roleTr,
       roleEn: roleEn,
       bio: bioTr,
       bioEn: bioEn,
-      favoriteGenres: editGenres,
-      linkedinUrl: editLinkedin.trim(),
-      avatarUrl: editAvatar.trim(),
+      favoriteGenres: finalGenres,
+      linkedinUrl: normalizedLinkedin,
+      avatarUrl: editAvatar.trim() || currentMember.avatarUrl,
       readingGoal2026: goalTr,
       readingGoal2026En: goalEn,
       currentlyReading: readingTr,
@@ -308,23 +359,29 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
       favoriteQuote: quoteTr,
       favoriteQuoteEn: quoteEn,
     };
+
+    const targetMemberId = currentMember.id;
     onUpdateMember(updated);
+    setConfirmDeleteMember(false);
     setIsEditing(false);
 
     // If any field remained identical due to custom non-dictionary text, request AI batch translation in background
+    // and patch ONLY the translated counterpart fields so we never clobber subsequent book/tag/avatar edits.
     const toL = language === 'en' ? 'tr' : 'en';
     const itemsToAiTranslate: Record<string, string> = {};
     if (language === 'en') {
       if (roleTr === roleEn && roleEn) itemsToAiTranslate['role'] = roleEn;
       if (bioTr === bioEn && bioEn) itemsToAiTranslate['bio'] = bioEn;
       if (quoteTr === quoteEn && quoteEn) itemsToAiTranslate['favoriteQuote'] = quoteEn;
+      if (goalTr === goalEn && goalEn) itemsToAiTranslate['readingGoal2026'] = goalEn;
     } else {
       if (roleEn === roleTr && roleTr) itemsToAiTranslate['roleEn'] = roleTr;
       if (bioEn === bioTr && bioTr) itemsToAiTranslate['bioEn'] = bioTr;
       if (quoteEn === quoteTr && quoteTr) itemsToAiTranslate['favoriteQuoteEn'] = quoteTr;
+      if (goalEn === goalTr && goalTr) itemsToAiTranslate['readingGoal2026En'] = goalTr;
     }
 
-    if (Object.keys(itemsToAiTranslate).length > 0) {
+    if (Object.keys(itemsToAiTranslate).length > 0 && onPatchMemberFields) {
       fetch('/api/translate-batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -332,15 +389,19 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
       })
       .then(r => r.json())
       .then(data => {
-        if (data.translated && typeof data.translated === 'object') {
-          const aiUpdated: Member = { ...updated };
-          if (data.translated.role) aiUpdated.role = data.translated.role;
-          if (data.translated.bio) aiUpdated.bio = data.translated.bio;
-          if (data.translated.favoriteQuote) aiUpdated.favoriteQuote = data.translated.favoriteQuote;
-          if (data.translated.roleEn) aiUpdated.roleEn = data.translated.roleEn;
-          if (data.translated.bioEn) aiUpdated.bioEn = data.translated.bioEn;
-          if (data.translated.favoriteQuoteEn) aiUpdated.favoriteQuoteEn = data.translated.favoriteQuoteEn;
-          onUpdateMember(aiUpdated);
+        if (data.translated && typeof data.translated === 'object' && !data.fallback) {
+          const patch: Partial<Member> = {};
+          if (data.translated.role && data.translated.role !== roleEn) patch.role = data.translated.role;
+          if (data.translated.bio && data.translated.bio !== bioEn) patch.bio = data.translated.bio;
+          if (data.translated.favoriteQuote && data.translated.favoriteQuote !== quoteEn) patch.favoriteQuote = data.translated.favoriteQuote;
+          if (data.translated.readingGoal2026 && data.translated.readingGoal2026 !== goalEn) patch.readingGoal2026 = data.translated.readingGoal2026;
+          if (data.translated.roleEn && data.translated.roleEn !== roleTr) patch.roleEn = data.translated.roleEn;
+          if (data.translated.bioEn && data.translated.bioEn !== bioTr) patch.bioEn = data.translated.bioEn;
+          if (data.translated.favoriteQuoteEn && data.translated.favoriteQuoteEn !== quoteTr) patch.favoriteQuoteEn = data.translated.favoriteQuoteEn;
+          if (data.translated.readingGoal2026En && data.translated.readingGoal2026En !== goalTr) patch.readingGoal2026En = data.translated.readingGoal2026En;
+          if (Object.keys(patch).length > 0) {
+            onPatchMemberFields(targetMemberId, patch);
+          }
         }
       })
       .catch(() => {});
@@ -466,26 +527,17 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
     setNewBookPages(320);
     setNewBookYear(2025);
 
+    const targetMemberId = currentMember.id;
     if (language === 'en') {
       translateTextWithAI(titleEn, 'en', 'tr').then(aiTitleTr => {
-        if (aiTitleTr && aiTitleTr !== titleTr) {
-          const refinedBook = { ...newBook, title: aiTitleTr };
-          const reUpdated: Member = {
-            ...currentMember,
-            books: [refinedBook, ...currentMember.books]
-          };
-          onUpdateMember(reUpdated);
+        if (aiTitleTr && aiTitleTr !== titleTr && onPatchMemberFields) {
+          onPatchMemberFields(targetMemberId, {}, { bookId, title: aiTitleTr });
         }
       });
     } else {
       translateTextWithAI(titleTr, 'tr', 'en').then(aiTitleEn => {
-        if (aiTitleEn && aiTitleEn !== titleEn) {
-          const refinedBook = { ...newBook, titleEn: aiTitleEn };
-          const reUpdated: Member = {
-            ...currentMember,
-            books: [refinedBook, ...currentMember.books]
-          };
-          onUpdateMember(reUpdated);
+        if (aiTitleEn && aiTitleEn !== titleEn && onPatchMemberFields) {
+          onPatchMemberFields(targetMemberId, {}, { bookId, titleEn: aiTitleEn });
         }
       });
     }
@@ -589,9 +641,9 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
       </div>
 
       {/* Member Hero Profile Card */}
-      <div className="relative bg-white rounded-3xl border border-stone-200/80 p-6 sm:p-10 shadow-xs">
-        {/* Admin/User Edit Button in corner */}
-        <div className="absolute top-5 right-5 sm:top-6 sm:right-6">
+      <div className="relative bg-white rounded-3xl border border-stone-200/80 p-5 sm:p-10 shadow-xs">
+        {/* Top Row Action Bar (never overlaps heading on mobile) */}
+        <div className={`flex items-center justify-end mb-4 sm:mb-0 ${isEditing ? 'sm:mb-4' : 'sm:absolute sm:top-6 sm:right-6'}`}>
           {canEditCurrentProfile ? (
             <button
               type="button"
@@ -607,6 +659,7 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
                   setEditQuote(getMemberQuote(currentMember, language));
                   setEditGenres(currentMember.favoriteGenres || []);
                   setNewGenreInput('');
+                  setConfirmDeleteMember(false);
                 }
                 setIsEditing(!isEditing);
               }}
@@ -643,9 +696,18 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
         {isEditing ? (
           /* Profile Edit Mode */
           <form onSubmit={handleSaveProfile} className="space-y-4 max-w-2xl">
-            <h3 className="font-serif text-2xl font-bold text-stone-900">
-              {language === 'en' ? `Edit ${currentMember.name}'s Profile` : `${currentMember.name} Profilini Düzenle`}
-            </h3>
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-stone-100">
+              <h3 className="font-serif text-xl sm:text-2xl font-bold text-stone-900">
+                {language === 'en' ? `Edit ${currentMember.name}'s Profile` : `${currentMember.name} Profilini Düzenle`}
+              </h3>
+              <button
+                type="submit"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-stone-900 text-white rounded-lg text-xs font-semibold hover:bg-stone-800 cursor-pointer shadow-xs"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>{t.memberSaveProfile}</span>
+              </button>
+            </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -654,7 +716,7 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
                   type="text"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none focus:border-[#C45B38]"
                   required
                 />
               </div>
@@ -664,7 +726,7 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
                   type="text"
                   value={editRole}
                   onChange={(e) => setEditRole(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+                  className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none focus:border-[#C45B38]"
                   required
                 />
               </div>
@@ -673,11 +735,11 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
             <div>
               <label className="block text-xs font-medium text-stone-700 mb-1">{t.memberLinkedin}</label>
               <input
-                type="url"
+                type="text"
                 value={editLinkedin}
                 onChange={(e) => setEditLinkedin(e.target.value)}
                 placeholder="https://www.linkedin.com/in/username"
-                className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none"
+                className="w-full text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none focus:border-[#C45B38]"
               />
             </div>
 
@@ -1032,7 +1094,7 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
               )}
             </div>
 
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
                 type="submit"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-stone-900 text-white rounded-lg text-xs font-medium hover:bg-stone-800 cursor-pointer shadow-xs"
@@ -1042,26 +1104,48 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
               </button>
               <button
                 type="button"
-                onClick={() => setIsEditing(false)}
+                onClick={() => {
+                  setIsEditing(false);
+                  setConfirmDeleteMember(false);
+                }}
                 className="px-4 py-2 bg-stone-200 text-stone-700 rounded-lg text-xs font-medium hover:bg-stone-300 cursor-pointer"
               >
                 {t.memberCancelEdit}
               </button>
 
               {isAdmin && onDeleteMember && members.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm(language === 'en' ? `Delete ${currentMember.name}?` : `${currentMember.name} silinsin mi?`)) {
-                      onDeleteMember(currentMember.id);
-                      setIsEditing(false);
-                    }
-                  }}
-                  className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-colors cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                  <span>{language === 'en' ? 'Delete Member' : 'Üyeyi Sil'}</span>
-                </button>
+                confirmDeleteMember ? (
+                  <div className="ml-auto flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onDeleteMember(currentMember.id);
+                        setConfirmDeleteMember(false);
+                        setIsEditing(false);
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>{language === 'en' ? `Confirm Delete ${currentMember.name.split(' ')[0]}` : 'Silmeyi Onayla'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmDeleteMember(false)}
+                      className="px-2.5 py-2 text-xs font-medium text-stone-600 bg-stone-100 hover:bg-stone-200 rounded-lg cursor-pointer"
+                    >
+                      {language === 'en' ? 'Cancel' : 'İptal'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmDeleteMember(true)}
+                    className="ml-auto inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{language === 'en' ? 'Delete Member' : 'Üyeyi Sil'}</span>
+                  </button>
+                )
               )}
             </div>
           </form>

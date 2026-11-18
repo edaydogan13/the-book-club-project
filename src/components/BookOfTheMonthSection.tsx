@@ -54,7 +54,7 @@ export const BookOfTheMonthSection: React.FC<BookOfTheMonthSectionProps> = ({
         {/* Section Header - Closer to main holder card */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3 mb-5">
           <div>
-            <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-amber-800 mb-1">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-mono uppercase tracking-widest text-amber-800 mb-1">
               <span className="w-2 h-2 rounded-full bg-[#C45B38] inline-block animate-pulse" />
               <span>{t.botmBadge} · {displayMonth}</span>
               <span aria-hidden="true">·</span>
@@ -173,7 +173,7 @@ export const BookOfTheMonthSection: React.FC<BookOfTheMonthSectionProps> = ({
           {/* Right Column: Narrative, Comments & Video Review Teaser */}
           <div className="lg:col-span-7 space-y-4">
             <div>
-              <div className="flex items-center gap-2 text-xs font-mono text-stone-500 uppercase tracking-wider mb-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-mono text-stone-500 uppercase tracking-wider mb-1">
                 <span>{genre}</span>
                 <span aria-hidden="true">·</span>
                 <span>{displayMonth}</span>

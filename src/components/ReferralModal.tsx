@@ -41,8 +41,6 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
   currentUser = null,
   isAdmin = false,
 }) => {
-  if (!isOpen) return null;
-
   const t = TRANSLATIONS[language];
   const isLoggedIn = Boolean(currentUser);
 
@@ -65,6 +63,8 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
 
   // Queue filter state
   const [queueFilter, setQueueFilter] = useState<'all' | 'newsletter' | 'referral'>('all');
+
+  if (!isOpen) return null;
 
   // Handle Newsletter Submission
   const handleNewsletterSubmit = (e: React.FormEvent) => {

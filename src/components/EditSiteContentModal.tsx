@@ -22,9 +22,11 @@ export const EditSiteContentModal: React.FC<EditSiteContentModalProps> = ({
 }) => {
   const [formData, setFormData] = useState<SiteContent>(siteContent);
   const [activeTab, setActiveTab] = useState<'hero' | 'stats' | 'general'>('hero');
+  const [confirmingReset, setConfirmingReset] = useState(false);
   const t = TRANSLATIONS[language];
 
   useEffect(() => {
+    setConfirmingReset(false);
     if (language === 'en') {
       setFormData({
         ...siteContent,
@@ -96,9 +98,8 @@ export const EditSiteContentModal: React.FC<EditSiteContentModalProps> = ({
   };
 
   const handleResetDefaults = () => {
-    if (window.confirm(language === 'en' ? 'Reset site text & stats to defaults?' : 'Site metinleri ve istatistikleri varsayılana sıfırlansın mı?')) {
-      setFormData(INITIAL_SITE_CONTENT);
-    }
+    setFormData(INITIAL_SITE_CONTENT);
+    setConfirmingReset(false);
   };
 
   return (
@@ -406,15 +407,35 @@ export const EditSiteContentModal: React.FC<EditSiteContentModalProps> = ({
           )}
 
           {/* Footer controls */}
-          <div className="pt-4 border-t border-stone-200 flex items-center justify-between gap-3">
-            <button
-              type="button"
-              onClick={handleResetDefaults}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-xs text-stone-600 hover:text-stone-900 transition-colors"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>{language === 'en' ? 'Reset to Defaults' : 'Varsayılana Sıfırla'}</span>
-            </button>
+          <div className="pt-4 border-t border-stone-200 flex flex-wrap items-center justify-between gap-3">
+            {confirmingReset ? (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleResetDefaults}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-700 rounded-xl transition-colors cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>{language === 'en' ? 'Confirm Reset' : 'Sıfırlamayı Onayla'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingReset(false)}
+                  className="px-2.5 py-2 text-xs text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 cursor-pointer"
+                >
+                  {language === 'en' ? 'Cancel' : 'İptal'}
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingReset(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs text-stone-600 hover:text-stone-900 transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>{language === 'en' ? 'Reset to Defaults' : 'Varsayılana Sıfırla'}</span>
+              </button>
+            )}
 
             <div className="flex items-center gap-2">
               <button

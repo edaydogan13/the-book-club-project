@@ -41,12 +41,12 @@ export const TactileBookCover: React.FC<TactileBookCoverProps> = ({
           }
         }}
         className={`relative cursor-pointer transition-all duration-300 ease-out select-none preserve-3d group-hover:-translate-y-2 group-hover:rotate-[-1deg] ${
-          isLarge ? 'w-[220px] h-[320px]' : 'w-[180px] h-[260px]'
+          isLarge ? 'w-[190px] sm:w-[220px] h-[275px] sm:h-[320px]' : 'w-[130px] sm:w-[180px] h-[190px] sm:h-[260px]'
         }`}
       >
         {/* Book Spine Edge (left physical 3D book thickness) */}
         <div 
-          className="absolute left-0 top-0 bottom-0 w-[14px] -translate-x-[12px] skew-y-[12deg] rounded-l-[2px] opacity-90 shadow-inner"
+          className="absolute left-0 top-0 bottom-0 w-[10px] sm:w-[14px] -translate-x-[8px] sm:-translate-x-[12px] skew-y-[12deg] rounded-l-[2px] opacity-90 shadow-inner"
           style={{
             backgroundColor: book.coverColor,
             filter: 'brightness(0.75)',
@@ -132,10 +132,10 @@ export const TactileBookCover: React.FC<TactileBookCoverProps> = ({
       </div>
 
       {/* Book Base Shadow */}
-      <div className="w-36 h-3 bg-stone-900/15 rounded-full blur-[4px] mt-2 group-hover:scale-x-110 group-hover:opacity-60 transition-all duration-300" />
+      <div className="w-28 sm:w-36 h-3 bg-stone-900/15 rounded-full blur-[4px] mt-2 group-hover:scale-x-110 group-hover:opacity-60 transition-all duration-300" />
 
       {/* Book Title & Author under the cover */}
-      <div className="mt-2.5 text-center max-w-[180px]">
+      <div className="mt-2.5 text-center max-w-[136px] sm:max-w-[180px]">
         <h4 className="font-serif text-sm font-semibold text-stone-900 leading-tight line-clamp-1">
           {title}
         </h4>

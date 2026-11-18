@@ -1422,51 +1422,71 @@ export const getBookMonth = (book: Book | null | undefined, lang: Language): str
 export const getMemberRole = (member: Member | null | undefined, lang: Language): string => {
   if (!member) return '';
   if (lang === 'en') {
-    if (member.roleEn && !hasTurkishChars(member.roleEn)) return member.roleEn;
-    const translated = translateTextSync(member.roleEn || member.role || '', 'tr', 'en');
-    return translated || member.roleEn || member.role || '';
+    if (member.roleEn) {
+      if (!hasTurkishChars(member.roleEn) || looksLikeEnglish(member.roleEn)) return member.roleEn;
+      const dict = translateTextSync(member.roleEn, 'tr', 'en');
+      return dict !== member.roleEn ? dict : member.roleEn;
+    }
+    return translateTextSync(member.role || '', 'tr', 'en') || member.role || '';
   }
-  // Turkish mode
-  if (member.role && !looksLikeEnglish(member.role)) return member.role;
-  const translated = translateTextSync(member.role || member.roleEn || '', 'en', 'tr');
-  return translated || member.role || member.roleEn || '';
+  if (member.role) {
+    if (!looksLikeEnglish(member.role) || hasTurkishChars(member.role)) return member.role;
+    const dict = translateTextSync(member.role, 'en', 'tr');
+    return dict !== member.role ? dict : member.role;
+  }
+  return translateTextSync(member.roleEn || '', 'en', 'tr') || member.roleEn || '';
 };
 
 export const getMemberBio = (member: Member | null | undefined, lang: Language): string => {
   if (!member) return '';
   if (lang === 'en') {
-    if (member.bioEn && !hasTurkishChars(member.bioEn)) return member.bioEn;
-    const translated = translateTextSync(member.bioEn || member.bio || '', 'tr', 'en');
-    return translated || member.bioEn || member.bio || '';
+    if (member.bioEn) {
+      if (!hasTurkishChars(member.bioEn) || looksLikeEnglish(member.bioEn)) return member.bioEn;
+      const dict = translateTextSync(member.bioEn, 'tr', 'en');
+      return dict !== member.bioEn ? dict : member.bioEn;
+    }
+    return translateTextSync(member.bio || '', 'tr', 'en') || member.bio || '';
   }
-  // Turkish mode
-  if (member.bio && !looksLikeEnglish(member.bio)) return member.bio;
-  const translated = translateTextSync(member.bio || member.bioEn || '', 'en', 'tr');
-  return translated || member.bio || member.bioEn || '';
+  if (member.bio) {
+    if (!looksLikeEnglish(member.bio) || hasTurkishChars(member.bio)) return member.bio;
+    const dict = translateTextSync(member.bio, 'en', 'tr');
+    return dict !== member.bio ? dict : member.bio;
+  }
+  return translateTextSync(member.bioEn || '', 'en', 'tr') || member.bioEn || '';
 };
 
 export const getMemberQuote = (member: Member | null | undefined, lang: Language): string => {
   if (!member) return '';
   if (lang === 'en') {
-    if (member.favoriteQuoteEn && !hasTurkishChars(member.favoriteQuoteEn)) return member.favoriteQuoteEn;
-    const translated = translateTextSync(member.favoriteQuoteEn || member.favoriteQuote || '', 'tr', 'en');
-    return translated || member.favoriteQuoteEn || member.favoriteQuote || '';
+    if (member.favoriteQuoteEn) {
+      if (!hasTurkishChars(member.favoriteQuoteEn) || looksLikeEnglish(member.favoriteQuoteEn)) return member.favoriteQuoteEn;
+      const dict = translateTextSync(member.favoriteQuoteEn, 'tr', 'en');
+      return dict !== member.favoriteQuoteEn ? dict : member.favoriteQuoteEn;
+    }
+    return translateTextSync(member.favoriteQuote || '', 'tr', 'en') || member.favoriteQuote || '';
   }
-  // Turkish mode
-  if (member.favoriteQuote && !looksLikeEnglish(member.favoriteQuote)) return member.favoriteQuote;
-  const translated = translateTextSync(member.favoriteQuote || member.favoriteQuoteEn || '', 'en', 'tr');
-  return translated || member.favoriteQuote || member.favoriteQuoteEn || '';
+  if (member.favoriteQuote) {
+    if (!looksLikeEnglish(member.favoriteQuote) || hasTurkishChars(member.favoriteQuote)) return member.favoriteQuote;
+    const dict = translateTextSync(member.favoriteQuote, 'en', 'tr');
+    return dict !== member.favoriteQuote ? dict : member.favoriteQuote;
+  }
+  return translateTextSync(member.favoriteQuoteEn || '', 'en', 'tr') || member.favoriteQuoteEn || '';
 };
 
 export const getMemberGoal = (member: Member | null | undefined, lang: Language): string => {
   if (!member) return '';
   if (lang === 'en') {
-    if (member.readingGoal2026En && !hasTurkishChars(member.readingGoal2026En)) return member.readingGoal2026En;
-    return translateTextSync(member.readingGoal2026En || member.readingGoal2026 || '', 'tr', 'en');
+    if (member.readingGoal2026En) {
+      if (!hasTurkishChars(member.readingGoal2026En)) return member.readingGoal2026En;
+      return translateTextSync(member.readingGoal2026En, 'tr', 'en');
+    }
+    return translateTextSync(member.readingGoal2026 || '', 'tr', 'en');
   }
-  // Turkish mode
-  if (member.readingGoal2026 && !looksLikeEnglish(member.readingGoal2026)) return member.readingGoal2026;
-  return translateTextSync(member.readingGoal2026 || member.readingGoal2026En || '', 'en', 'tr');
+  if (member.readingGoal2026) {
+    if (!looksLikeEnglish(member.readingGoal2026)) return member.readingGoal2026;
+    return translateTextSync(member.readingGoal2026, 'en', 'tr');
+  }
+  return translateTextSync(member.readingGoal2026En || '', 'en', 'tr');
 };
 
 export const getMemberCurrentlyReading = (member: Member | null | undefined, lang: Language): string => {

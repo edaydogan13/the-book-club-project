@@ -60,16 +60,8 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
   onRemoveFromMemberShelf,
   memberShelfOwnerName,
 }) => {
-  if (!book) return null;
-
   const canUploadVideo = isAdmin || Boolean(currentUser);
   const t = TRANSLATIONS[language];
-  const title = getBookTitle(book, language);
-  const coverUrl = getBookCover(book, language);
-  const synopsis = getBookSynopsis(book, language);
-  const quote = getBookQuote(book, language);
-  const genre = getBookGenre(book, language);
-  const month = getBookMonth(book, language);
 
   const [activeTab, setActiveTab] = useState<'overview' | 'discussion' | 'video'>('overview');
   const [newCommentText, setNewCommentText] = useState('');
@@ -84,8 +76,11 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
   const [videoUrlInput, setVideoUrlInput] = useState('');
   const [videoNotes, setVideoNotes] = useState('');
   const [localVideoPreview, setLocalVideoPreview] = useState<string | null>(null);
+  const [confirmRemoveShelf, setConfirmRemoveShelf] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    setConfirmRemoveShelf(false);
     if (initialOpenVideoUpload && canUploadVideo) {
       setActiveTab('video');
       setIsUploadingVideo(true);
@@ -94,8 +89,20 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
       setIsUploadingVideo(false);
     }
   }, [book?.id, initialOpenVideoUpload, canUploadVideo]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
+  useEffect(() => {
+    setNewCommentAuthor(currentUser?.displayName || (isAdmin ? 'Eda Aydoğan' : ''));
+    setVideoSpeaker(currentUser?.displayName || (isAdmin ? 'Eda Aydoğan' : ''));
+  }, [currentUser?.displayName, isAdmin]);
+
+  if (!book) return null;
+
+  const title = getBookTitle(book, language);
+  const coverUrl = getBookCover(book, language);
+  const synopsis = getBookSynopsis(book, language);
+  const quote = getBookQuote(book, language);
+  const genre = getBookGenre(book, language);
+  const month = getBookMonth(book, language);
   const displayMonth = language === 'en' ? 'October 2026' : 'Ekim 2026';
 
   const handleCommentSubmit = (e: React.FormEvent) => {
@@ -260,25 +267,39 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
             )}
 
             {onRemoveFromMemberShelf && (
-              <button
-                type="button"
-                onClick={() => {
-                  const confirmed = window.confirm(
-                    language === 'en'
-                      ? `Remove "${title}" from ${memberShelfOwnerName || 'member'}'s bookshelf?\n\n(This only removes it from this member's library; collective salon records remain intact.)`
-                      : `"${title}" kitabını ${memberShelfOwnerName || 'üye'} kitaplığından kaldırmak istiyor musunuz?\n\n(Bu işlem kitabı yalnızca bu üyenin rafından kaldırır; kulüp arşivi korunur.)`
-                  );
-                  if (confirmed) {
-                    onRemoveFromMemberShelf(book.id);
-                    onClose();
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 transition-colors shadow-xs cursor-pointer ml-1"
-                title={language === 'en' ? `Remove from ${memberShelfOwnerName || 'member'}'s bookshelf` : `Bu üyenin rafından kaldır`}
-              >
-                <Trash2 className="w-3.5 h-3.5 text-rose-700" />
-                <span>{language === 'en' ? 'Remove from Shelf' : 'Raftan Kaldır'}</span>
-              </button>
+              confirmRemoveShelf ? (
+                <div className="inline-flex items-center gap-1 ml-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onRemoveFromMemberShelf(book.id);
+                      setConfirmRemoveShelf(false);
+                      onClose();
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition-colors shadow-xs cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{language === 'en' ? 'Confirm Remove' : 'Kaldırmayı Onayla'}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmRemoveShelf(false)}
+                    className="px-2 py-1 text-xs font-medium rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 cursor-pointer"
+                  >
+                    {language === 'en' ? 'Cancel' : 'İptal'}
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setConfirmRemoveShelf(true)}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300 transition-colors shadow-xs cursor-pointer ml-1"
+                  title={language === 'en' ? `Remove from ${memberShelfOwnerName || 'member'}'s bookshelf` : `Bu üyenin rafından kaldır`}
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-rose-700" />
+                  <span>{language === 'en' ? 'Remove from Shelf' : 'Raftan Kaldır'}</span>
+                </button>
+              )
             )}
 
             <button

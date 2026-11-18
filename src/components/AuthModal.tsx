@@ -47,13 +47,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onOpenAddMember,
   onSelectMember,
 }) => {
-  if (!isOpen) return null;
-
   const t = TRANSLATIONS[language];
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
+
+  if (!isOpen) return null;
 
   const performLogin = (username: string, pass: string) => {
     setErrorMsg('');

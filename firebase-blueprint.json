@@ -1,0 +1,96 @@
+{
+  "entities": {
+    "Book": {
+      "title": "Book",
+      "description": "A book cataloged by the club members",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "titleEn": { "type": "string" },
+        "author": { "type": "string" },
+        "year": { "type": "number" },
+        "pages": { "type": "number" },
+        "genre": { "type": "string" },
+        "genreEn": { "type": "string" },
+        "synopsis": { "type": "string" },
+        "synopsisEn": { "type": "string" },
+        "favoriteQuote": { "type": "string" },
+        "favoriteQuoteEn": { "type": "string" },
+        "suggesterId": { "type": "string" },
+        "suggesterName": { "type": "string" },
+        "month": { "type": "string" },
+        "isBookOfMonth": { "type": "boolean" },
+        "coverColor": { "type": "string" },
+        "rating": { "type": "number" }
+      },
+      "required": ["id", "title", "author"]
+    },
+    "Member": {
+      "title": "Member",
+      "description": "A book club member profile",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": { "type": "string" },
+        "roleEn": { "type": "string" },
+        "bio": { "type": "string" },
+        "bioEn": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "linkedinUrl": { "type": "string" },
+        "favoriteQuote": { "type": "string" },
+        "favoriteQuoteEn": { "type": "string" },
+        "readingGoal2026": { "type": "string" },
+        "currentlyReading": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "Referral": {
+      "title": "Referral",
+      "description": "Newsletter subscription or club referral application",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "applicantName": { "type": "string" },
+        "applicantEmail": { "type": "string" },
+        "submissionType": { "type": "string", "enum": ["newsletter", "referral"] },
+        "status": { "type": "string", "enum": ["pending", "approved", "declined"] },
+        "submittedAt": { "type": "string" },
+        "reason": { "type": "string" },
+        "favoriteBook": { "type": "string" }
+      },
+      "required": ["id", "applicantName", "applicantEmail"]
+    },
+    "SiteContent": {
+      "title": "SiteContent",
+      "description": "Club brand and landing page content",
+      "type": "object",
+      "properties": {
+        "brandName": { "type": "string" },
+        "tagline": { "type": "string" },
+        "heroLine1": { "type": "string" },
+        "heroSubtitle": { "type": "string" }
+      },
+      "required": ["brandName"]
+    }
+  },
+  "firestore": {
+    "/books/{bookId}": {
+      "schema": "Book",
+      "description": "Collection of club books"
+    },
+    "/members/{memberId}": {
+      "schema": "Member",
+      "description": "Collection of club members"
+    },
+    "/referrals/{referralId}": {
+      "schema": "Referral",
+      "description": "Collection of referral applications and newsletter signups"
+    },
+    "/siteContent/{contentId}": {
+      "schema": "SiteContent",
+      "description": "Landing page and metadata configuration"
+    }
+  }
+}
