@@ -17,4 +17,8 @@ if (!existsSync('dist/index.html')) {
   }
 }
 
-await import('./server.ts');
+// No top-level await: Hostinger loads this file via require(), which rejects it.
+import('./server.ts').catch((err) => {
+  console.error('Failed to start server.ts', err);
+  process.exit(1);
+});
