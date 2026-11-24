@@ -238,11 +238,21 @@ export const ContactPage: React.FC<ContactPageProps> = ({
             </div>
             <div>
               <span className="font-mono uppercase text-stone-500 block text-[10px]">
-                {language === 'en' ? 'Salon Chapters' : 'Salon Şehirleri'}
+                {language === 'en' ? 'Founding Location & Chapters' : 'Merkez ve Salon Şehirleri'}
               </span>
               <p className="text-stone-800 font-medium flex items-center gap-1.5 mt-0.5">
-                <Globe className="w-3.5 h-3.5 text-stone-500" />
-                <span>Istanbul · Dubai · New York · San Francisco</span>
+                <Globe className="w-3.5 h-3.5 text-stone-500 shrink-0" />
+                <span>Istanbul, TR (34000) · Dubai · New York · San Francisco</span>
+              </p>
+            </div>
+            <div>
+              <span className="font-mono uppercase text-stone-500 block text-[10px]">
+                {language === 'en' ? 'Telephone' : 'Telefon'}
+              </span>
+              <p className="text-stone-600 mt-0.5">
+                {language === 'en'
+                  ? 'No public phone line — correspondence handled via email'
+                  : 'Kamuya açık telefon hattı yoktur — iletişim yalnızca e-posta iledir'}
               </p>
             </div>
           </div>

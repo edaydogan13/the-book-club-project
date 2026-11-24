@@ -1,0 +1,62 @@
+Options -Indexes
+DirectorySlash Off
+ErrorDocument 404 /404.html
+
+<IfModule mod_mime.c>
+  AddType text/markdown;charset=utf-8 .md
+</IfModule>
+
+<Files "llms.txt">
+  <IfModule mod_headers.c>
+    Header set Content-Type "text/markdown; charset=utf-8"
+  </IfModule>
+</Files>
+
+<Files "index.md">
+  <IfModule mod_headers.c>
+    Header set Content-Type "text/markdown; charset=utf-8"
+    Header merge Vary "Accept"
+    Header always set Link "<https://booksnfriends.com/llms.txt>; rel=\"alternate\"; type=\"text/markdown\"; title=\"LLMs Summary\", <https://booksnfriends.com/>; rel=\"alternate\"; type=\"text/markdown\"; title=\"Markdown Representation\", <https://booksnfriends.com/sitemap.xml>; rel=\"sitemap\"; type=\"application/xml\", <https://booksnfriends.com/.well-known/mcp/server-card.json>; rel=\"describedby\"; type=\"application/json\""
+  </IfModule>
+</Files>
+
+<Files "server-card.json">
+  <IfModule mod_headers.c>
+    Header set Content-Type "application/json; charset=utf-8"
+    Header set Access-Control-Allow-Origin "*"
+  </IfModule>
+</Files>
+
+<Files "index.html">
+  <IfModule mod_headers.c>
+    Header merge Vary "Accept"
+    Header always set Link "<https://booksnfriends.com/llms.txt>; rel=\"alternate\"; type=\"text/markdown\"; title=\"LLMs Summary\", <https://booksnfriends.com/>; rel=\"alternate\"; type=\"text/markdown\"; title=\"Markdown Representation\", <https://booksnfriends.com/sitemap.xml>; rel=\"sitemap\"; type=\"application/xml\", <https://booksnfriends.com/.well-known/mcp/server-card.json>; rel=\"describedby\"; type=\"application/json\""
+  </IfModule>
+</Files>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Serve Markdown representation on homepage when Accept includes text/markdown
+  RewriteCond %{REQUEST_URI} ^/?(index\.html)?$
+  RewriteCond %{HTTP:Accept} text/markdown [NC]
+  RewriteRule ^/?(index\.html)?$ /index.md [T=text/markdown;charset=utf-8,L]
+
+  # Route /members explicitly before Apache checks the physical members/ image directory
+  RewriteRule ^members/?$ /index.html [L]
+
+  # Serve existing files directly (robots.txt, sitemap.xml, llms.txt, .well-known, assets, covers, members/*.*)
+  RewriteCond %{REQUEST_FILENAME} -f
+  RewriteRule ^ - [L]
+
+  # Valid client-side SPA routes -> index.html
+  RewriteRule ^book-of-month/?$ /index.html [L]
+  RewriteRule ^members/(cemre-sirin|eda-aydogan|can-mert|ferhat-babacan|gizem-yenicikan|gokce-uysal)/?$ /index.html [L]
+  RewriteRule ^about/?$ /index.html [L]
+  RewriteRule ^contact/?$ /index.html [L]
+  RewriteRule ^terms/?$ /index.html [L]
+  RewriteRule ^privacy/?$ /index.html [L]
+
+  # Any other non-file path returns a real HTTP 404
+  RewriteRule ^ - [R=404,L]
+</IfModule>

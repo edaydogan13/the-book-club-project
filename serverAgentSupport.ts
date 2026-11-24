@@ -459,6 +459,16 @@ export function buildJsonLd(origin: string, meta: RouteMeta, storeData: StoreDat
       alternateName: 'The Six — Private Book Club',
       url: `${origin}/`,
       email: 'edaydogannn@gmail.com',
+      telephone: 'No public phone — correspondence via edaydogannn@gmail.com',
+      address: {
+        '@type': 'PostalAddress',
+        streetAddress: 'Istanbul Chapter — Private Literary Salon',
+        addressLocality: 'Istanbul',
+        addressRegion: 'Istanbul',
+        postalCode: '34000',
+        addressCountry: 'TR',
+      },
+      areaServed: ['Istanbul', 'Dubai', 'New York', 'San Francisco'],
       foundingDate: '2025-11',
       description:
         'An intimate six-member reading collective across Istanbul, Dubai, New York, and San Francisco reading one curated book every month together.',
@@ -471,6 +481,7 @@ export function buildJsonLd(origin: string, meta: RouteMeta, storeData: StoreDat
         '@type': 'ContactPoint',
         contactType: 'editorial support',
         email: 'edaydogannn@gmail.com',
+        telephone: 'No public phone — correspondence via edaydogannn@gmail.com',
         availableLanguage: ['English', 'Turkish'],
       },
       sameAs,
@@ -638,6 +649,8 @@ export function buildMarkdownForRoute(origin: string, meta: RouteMeta, storeData
       '# Contact Books & Friends',
       '',
       '- **Editorial & Salon Email:** [edaydogannn@gmail.com](mailto:edaydogannn@gmail.com)',
+      '- **Telephone:** No public telephone line (all correspondence handled via email)',
+      '- **Founding Location:** Istanbul, 34000, TR (Private Literary Salon)',
       '- **Chapters:** Istanbul · Dubai · New York · San Francisco',
       '- **Newsletter & Referrals:** Subscribe or submit a guest referral on the website.',
       navFooter,
@@ -719,6 +732,7 @@ export function buildStaticSsrRootHtml(origin: string, meta: RouteMeta, storeDat
       <h1>Contact Books &amp; Friends</h1>
       <p>${escapeHtml(meta.description)}</p>
       <p>Editorial email: <a href="mailto:edaydogannn@gmail.com">edaydogannn@gmail.com</a></p>
+      <p>Location: Istanbul, 34000, TR (Private Literary Salon across Istanbul, Dubai, New York, and San Francisco). Telephone: No public phone — correspondence via email.</p>
     `;
   } else if (meta.view === 'terms') {
     bodyHtml = `

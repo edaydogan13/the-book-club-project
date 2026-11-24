@@ -555,7 +555,7 @@ ${JSON.stringify(items)}`;
 
   if (!isDev && hasDist) {
     console.log('[Server] Production mode: Serving compiled assets from', distPath);
-    app.use(express.static(distPath, { index: false }));
+    app.use(express.static(distPath, { index: false, redirect: false }));
   } else {
     console.log('[Server] Development mode: Mounting Vite middlewares');
     const { createServer: createViteServer } = await import('vite');

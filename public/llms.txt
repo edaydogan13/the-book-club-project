@@ -1,0 +1,44 @@
+# Books & Friends
+
+> An intimate six-member private book club and literary salon across Istanbul, Dubai, New York, and San Francisco, reading one curated book per month since November 2025.
+
+Founded by Cemre Şirin and curated by Eda Aydoğan. All correspondence and membership referral inquiries can be sent to edaydogannn@gmail.com.
+
+## Key Pages
+- [The Collective Bookshelf (Home)](https://booksnfriends.com/): Browse all 10 curated books, Book of the Month highlight, and club reading stats.
+- [Book of the Month](https://booksnfriends.com/book-of-month): Current monthly selection, synopsis, discussion themes, and member reflections.
+- [Meet the Friends](https://booksnfriends.com/members): Profiles, 2026 reading goals, and personal shelves of our 6 members.
+- [About Books & Friends](https://booksnfriends.com/about): Collective mission, curatorial history, and member directory.
+- [Contact & Inquiries](https://booksnfriends.com/contact): Editorial email (edaydogannn@gmail.com) and Salon Dispatch newsletter signup.
+- [Terms of Use](https://booksnfriends.com/terms): Salon guidelines, contributor rights, and affiliate disclosure.
+- [Privacy Policy](https://booksnfriends.com/privacy): Data stewardship, Google Workspace OAuth notice, and deletion requests.
+
+## Agent & Machine-Readable Endpoints
+- [MCP Server Card (SEP-1649)](https://booksnfriends.com/.well-known/mcp/server-card.json): Model Context Protocol capability card.
+- [MCP Streamable HTTP Endpoint](https://booksnfriends.com/mcp): JSON-RPC 2.0 MCP tools and resources endpoint.
+- [Structured Club Data JSON](https://booksnfriends.com/api/data): Full JSON snapshot of curated books and members.
+- [XML Sitemap](https://booksnfriends.com/sitemap.xml): Complete list of indexable public URLs.
+
+## Current Book of the Month
+- **Born a Crime** (Suçlu Doğmak) by Trevor Noah — curated by Mert (Can Mert)
+  The compelling, inspiring, and comically inventive story of a young man coming of age in South Africa during the twilight of apartheid and the tumultuous days of freedom that followed.
+
+## Curated Bookshelf
+- **Born a Crime** — Trevor Noah (Autobiography & Social Satire, 304 pages, curated by Mert (Can Mert))
+- **Istanbul: Memories and the City** — Orhan Pamuk (Memoir & Literary Geography, 440 pages, curated by Gökçe Nur Uysal)
+- **The Wall** — Marlen Haushofer (Dystopian Classic & Solitude, 288 pages, curated by Gizem Yeniçıkan)
+- **Death in Venice** — Thomas Mann (Modernist Novella & Aesthetics, 104 pages, curated by Ferhat Babacan)
+- **Time Shelter** — Georgi Gospodinov (Speculative Fiction & Memory, 392 pages, curated by Gizem Yeniçıkan)
+- **The Doors of Perception** — Aldous Huxley (Philosophical Essay & Consciousness, 96 pages, curated by Cemre Şirin)
+- **The Almanack of Naval Ravikant** — Eric Jorgenson (Philosophy & Wealth Creation, 244 pages, curated by Eda Aydoğan)
+- **The Fifth Agreement** — Don Miguel Ruiz & Don Jose Ruiz (Toltec Wisdom & Mindfulness, 248 pages, curated by Eda Aydoğan)
+- **Designing Your Life** — Bill Burnett & Dave Evans (Design Thinking & Personal Growth, 272 pages, curated by Mert (Can Mert))
+- **Living in the Display Window** — Nurdan Gürbilek (Cultural Criticism & Philosophy, 208 pages, curated by Cemre Şirin)
+
+## Curating Members
+- [Cemre Şirin](https://booksnfriends.com/members/cemre-sirin) — Founder (https://www.linkedin.com/in/cemresirin/)
+- [Eda Aydoğan](https://booksnfriends.com/members/eda-aydogan) — Curator & Web Architect (https://www.linkedin.com/in/eda-aydogan/)
+- [Mert (Can Mert)](https://booksnfriends.com/members/can-mert) — Software Engineer & Biographic Thinker (https://www.linkedin.com/in/canmert/)
+- [Ferhat Babacan](https://booksnfriends.com/members/ferhat-babacan) — Co-founder & Classicist (https://www.linkedin.com/in/ferhatbabacan/)
+- [Gizem Yeniçıkan](https://booksnfriends.com/members/gizem-yenicikan) — Senior Consultant & Dystopia Explorer (https://www.linkedin.com/in/gizemyenicikan/)
+- [Gökçe Nur Uysal](https://booksnfriends.com/members/gokce-uysal) — Sustainability Specialist & Urban Narrator (https://www.linkedin.com/in/gokcenuruysal/)

@@ -1,0 +1,75 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/mcp-server-card/v1.json",
+  "version": "1.0",
+  "protocolVersion": "2025-06-18",
+  "name": "Books & Friends MCP Server",
+  "description": "MCP server for the Books & Friends reading collective: inspect the curated bookshelf, Book of the Month reflections, and curating member profiles.",
+  "endpoint": "https://booksnfriends.com/mcp",
+  "serverInfo": {
+    "name": "books-and-friends",
+    "title": "Books & Friends — Private Book Club",
+    "version": "1.0.0"
+  },
+  "transport": {
+    "type": "streamable-http",
+    "endpoint": "/mcp"
+  },
+  "capabilities": {
+    "tools": {
+      "listChanged": false
+    },
+    "resources": {
+      "subscribe": false,
+      "listChanged": false
+    },
+    "prompts": {
+      "listChanged": false
+    }
+  },
+  "authentication": {
+    "required": false
+  },
+  "tools": [
+    {
+      "name": "list_books",
+      "description": "List or search curated books in the Books & Friends collective library.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "Optional title, author, or genre filter string."
+          }
+        }
+      }
+    },
+    {
+      "name": "get_book_of_the_month",
+      "description": "Return details, synopsis, discussion themes, and comments for the current Book of the Month.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "list_members",
+      "description": "List curating members, roles, reading goals, and personal shelves.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      }
+    }
+  ],
+  "resources": [
+    {
+      "uri": "https://booksnfriends.com/llms.txt",
+      "name": "Books & Friends llms.txt",
+      "mimeType": "text/markdown"
+    },
+    {
+      "uri": "https://booksnfriends.com/api/data",
+      "name": "Books & Friends Catalog JSON",
+      "mimeType": "application/json"
+    }
+  ]
+}
