@@ -9,7 +9,7 @@
 //   members/{id}      -> Member (+ _idx)
 //   referrals/{id}    -> ReferralApplication (+ _idx, newest first)
 //   siteContent/main  -> SiteContent
-//   meta/store        -> { lastUpdated } bumped after every write; clients poll this one tiny
+//   meta/store        -> { lastUpdated, seeded } bumped after every write; clients poll this one tiny
 //                        document and only re-download the collections when it changes.
 //
 // The exported function names and return shapes are unchanged from the Express version.
@@ -106,9 +106,17 @@ async function readSnapshotRows(name: string) {
   return snap.docs;
 }
 
-async function touchMeta(): Promise<string> {
+/** True once the first full copy of the site data has been written (see seedStoreIfEmpty). */
+async function isSeeded(): Promise<boolean> {
+  const meta = await getDocFromServer(metaRef());
+  return meta.exists() && meta.data().seeded === true;
+}
+
+const NOT_SEEDED = 'The shared database has not been initialised yet. Log in as admin once to migrate the site data.';
+
+async function touchMeta(markSeeded = false): Promise<string> {
   const lastUpdated = new Date().toISOString();
-  await setDoc(metaRef(), { lastUpdated });
+  await setDoc(metaRef(), markSeeded ? { lastUpdated, seeded: true } : { lastUpdated }, { merge: true });
   cache = null;
   return lastUpdated;
 }
@@ -127,7 +135,8 @@ let cache: ClubStorePayload | null = null;
 export async function fetchClubData(): Promise<ClubStorePayload | null> {
   try {
     const meta = await getDocFromServer(metaRef());
-    if (!meta.exists()) return null;
+    // A single early write (e.g. a background translation patch) must not make a half-empty store look real.
+    if (!meta.exists() || meta.data().seeded !== true) return null;
     const lastUpdated = meta.data().lastUpdated as string;
     if (cache && cache.lastUpdated === lastUpdated) return cache;
 
@@ -198,7 +207,7 @@ export async function saveClubData(payload: ClubStorePayload): Promise<ApiRespon
     }
 
     await commitInChunks(ops);
-    const lastUpdated = await touchMeta();
+    const lastUpdated = await touchMeta(true);
     const data = { ...payload, lastUpdated };
     broadcastSync('SAVE_CLUB_DATA', data);
     return { success: true, data, lastUpdated };
@@ -214,8 +223,7 @@ export async function saveClubData(payload: ClubStorePayload): Promise<ApiRespon
  */
 export async function seedStoreIfEmpty(payload: ClubStorePayload): Promise<{ seeded: boolean; error?: string }> {
   try {
-    const meta = await getDocFromServer(metaRef());
-    if (meta.exists()) return { seeded: false };
+    if (await isSeeded()) return { seeded: false };
     const res = await saveClubData(payload);
     return res.success ? { seeded: true } : { seeded: false, error: res.error };
   } catch (err: any) {
@@ -230,6 +238,7 @@ export async function seedStoreIfEmpty(payload: ClubStorePayload): Promise<{ see
 
 export async function saveBookApi(book: Book): Promise<ApiResponse<{ book: Book; books: Book[] }>> {
   try {
+    if (!(await isSeeded())) return { success: false, error: NOT_SEEDED };
     const docs = await readSnapshotRows('books');
     const key = docKey(book.id);
     const existing = docs.find(d => d.id === key);
@@ -258,6 +267,7 @@ export async function saveBookApi(book: Book): Promise<ApiResponse<{ book: Book;
 
 export async function deleteBookApi(bookId: string): Promise<ApiResponse<{ books: Book[] }>> {
   try {
+    if (!(await isSeeded())) return { success: false, error: NOT_SEEDED };
     await deleteDoc(doc(db, 'books', docKey(bookId)));
     const lastUpdated = await touchMeta();
     const result = { success: true, books: await readCollection<Book>('books'), lastUpdated };
@@ -271,6 +281,7 @@ export async function deleteBookApi(bookId: string): Promise<ApiResponse<{ books
 
 export async function addCommentApi(bookId: string, comment: BookComment): Promise<ApiResponse<{ books: Book[] }>> {
   try {
+    if (!(await isSeeded())) return { success: false, error: NOT_SEEDED };
     const ref = doc(db, 'books', docKey(bookId));
     await runTransaction(db, async tx => {
       const snap = await tx.get(ref);
@@ -290,6 +301,7 @@ export async function addCommentApi(bookId: string, comment: BookComment): Promi
 
 export async function updateVideoApi(bookId: string, videoReview: VideoReview): Promise<ApiResponse<{ books: Book[] }>> {
   try {
+    if (!(await isSeeded())) return { success: false, error: NOT_SEEDED };
     const video = clean(videoReview);
     assertFits('Video review', video);
     await updateDoc(doc(db, 'books', docKey(bookId)), { videoReview: video });
@@ -309,6 +321,7 @@ export async function updateVideoApi(bookId: string, videoReview: VideoReview): 
 
 export async function saveMemberApi(member: Member): Promise<ApiResponse<{ member: Member; members: Member[] }>> {
   try {
+    if (!(await isSeeded())) return { success: false, error: NOT_SEEDED };
     const docs = await readSnapshotRows('members');
     const key = docKey(member.id);
     const existing = docs.find(d => d.id === key);
@@ -333,6 +346,7 @@ export async function saveMemberApi(member: Member): Promise<ApiResponse<{ membe
 
 export async function saveSiteContentApi(siteContent: SiteContent): Promise<ApiResponse<{ siteContent: SiteContent }>> {
   try {
+    if (!(await isSeeded())) return { success: false, error: NOT_SEEDED };
     const site = clean(siteContent);
     assertFits('Site content', site);
     await setDoc(siteRef(), site);
@@ -368,6 +382,7 @@ export async function addReferralApi(referral: ReferralApplication): Promise<Api
 
 export async function updateReferralStatusApi(id: string, status: 'approved' | 'declined'): Promise<ApiResponse<{ referrals: ReferralApplication[] }>> {
   try {
+    if (!(await isSeeded())) return { success: false, error: NOT_SEEDED };
     await updateDoc(doc(db, 'referrals', docKey(id)), { status });
     const lastUpdated = await touchMeta();
     const result = { success: true, referrals: await readCollection<ReferralApplication>('referrals'), lastUpdated };
