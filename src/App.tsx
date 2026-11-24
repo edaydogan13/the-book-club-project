@@ -28,6 +28,7 @@ import { Edit3, Plus, Sparkles, CloudCheck, RefreshCw, CheckCircle2, AlertCircle
 import { 
   fetchClubData, 
   saveClubData,
+  seedStoreIfEmpty,
   saveBookApi, 
   deleteBookApi, 
   saveMemberApi, 
@@ -397,6 +398,32 @@ export default function App() {
       }
     };
   }, [syncWithBackend]);
+
+  // One-time migration: while the shared Firestore store has never been written, the first admin
+  // session copies the data it currently has (including edits saved only in this browser) into it.
+  // After that the store is the source of truth and this does nothing.
+  const seedAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (!isAdmin || seedAttemptedRef.current) return;
+    seedAttemptedRef.current = true;
+    (async () => {
+      const res = await seedStoreIfEmpty({ books, members, siteContent, referrals });
+      if (res.seeded) {
+        setSyncStatus('synced');
+        showToast(
+          language === 'en' ? 'Your site data is now saved to the shared database' : 'Site verileri ortak veritabanına aktarıldı',
+          'success'
+        );
+      } else if (res.error) {
+        setSyncStatus('error');
+        showToast(
+          language === 'en' ? `Could not reach the shared database: ${res.error}` : `Ortak veritabanına ulaşılamadı: ${res.error}`,
+          'error'
+        );
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin]);
 
   useEffect(() => {
     safeStorage.setItem('books_and_friends_books_v9', JSON.stringify(books));
