@@ -4,6 +4,19 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { GoogleGenAI } from '@google/genai';
+import {
+  getRequestOrigin,
+  buildLinkHeader,
+  wantsMarkdown,
+  resolveRouteMeta,
+  buildRobotsTxt,
+  buildSitemapXml,
+  buildLlmsTxt,
+  buildMcpServerCard,
+  buildMarkdownForRoute,
+  injectHtmlMetadata,
+  escapeHtml,
+} from './serverAgentSupport.ts';
 
 dotenv.config();
 
@@ -339,41 +352,291 @@ ${JSON.stringify(items)}`;
     res.json({ status: 'ok', server: 'Books & Friends API', store: fs.existsSync(getStoreFilePath()) });
   });
 
+  // Unknown API routes return 404 JSON instead of falling through to HTML
+  app.all('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API endpoint not found' });
+  });
+
+  // ==========================================
+  // AGENT DISCOVERY & MACHINE-READABLE ENDPOINTS
+  // ==========================================
+
+  app.get('/robots.txt', (req, res) => {
+    const origin = getRequestOrigin(req);
+    res
+      .status(200)
+      .set({
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'public, max-age=3600',
+      })
+      .send(buildRobotsTxt(origin));
+  });
+
+  app.get('/sitemap.xml', (req, res) => {
+    const origin = getRequestOrigin(req);
+    const storeData = readStoreData();
+    res
+      .status(200)
+      .set({
+        'Content-Type': 'application/xml; charset=utf-8',
+        'Cache-Control': 'public, max-age=3600',
+      })
+      .send(buildSitemapXml(origin, storeData));
+  });
+
+  app.get('/llms.txt', (req, res) => {
+    const origin = getRequestOrigin(req);
+    const storeData = readStoreData();
+    res
+      .status(200)
+      .set({
+        'Content-Type': 'text/markdown; charset=utf-8',
+        'Cache-Control': 'public, max-age=600',
+      })
+      .send(buildLlmsTxt(origin, storeData));
+  });
+
+  app.get('/.well-known/mcp/server-card.json', (req, res) => {
+    const origin = getRequestOrigin(req);
+    res
+      .status(200)
+      .set({
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+        'Cache-Control': 'public, max-age=3600',
+      })
+      .json(buildMcpServerCard(origin));
+  });
+
+  app.get('/mcp', (req, res) => {
+    const origin = getRequestOrigin(req);
+    res
+      .status(200)
+      .set({
+        'Content-Type': 'application/json; charset=utf-8',
+        'Access-Control-Allow-Origin': '*',
+      })
+      .json(buildMcpServerCard(origin));
+  });
+
+  app.post('/mcp', (req, res) => {
+    const origin = getRequestOrigin(req);
+    const body = req.body || {};
+    const id = body.id !== undefined ? body.id : null;
+    const method = body.method;
+    const params = body.params || {};
+    const storeData = readStoreData() || { books: [], members: [] };
+    const books = Array.isArray(storeData.books) ? storeData.books : [];
+    const members = Array.isArray(storeData.members) ? storeData.members : [];
+    const card = buildMcpServerCard(origin);
+
+    res.set({
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+    });
+
+    if (method === 'initialize') {
+      return res.json({
+        jsonrpc: '2.0',
+        id,
+        result: {
+          protocolVersion: '2025-06-18',
+          capabilities: card.capabilities,
+          serverInfo: card.serverInfo,
+        },
+      });
+    }
+
+    if (method === 'notifications/initialized') {
+      return res.status(204).end();
+    }
+
+    if (method === 'ping') {
+      return res.json({ jsonrpc: '2.0', id, result: {} });
+    }
+
+    if (method === 'tools/list') {
+      return res.json({ jsonrpc: '2.0', id, result: { tools: card.tools } });
+    }
+
+    if (method === 'tools/call') {
+      const toolName = params.name;
+      const args = params.arguments || {};
+
+      if (toolName === 'list_books') {
+        const q = typeof args.query === 'string' ? args.query.trim().toLowerCase() : '';
+        const filtered = books.filter((b: any) =>
+          !q ||
+          (b.title || '').toLowerCase().includes(q) ||
+          (b.titleEn || '').toLowerCase().includes(q) ||
+          (b.author || '').toLowerCase().includes(q) ||
+          (b.genreEn || b.genre || '').toLowerCase().includes(q)
+        );
+        return res.json({
+          jsonrpc: '2.0',
+          id,
+          result: {
+            content: [{ type: 'text', text: JSON.stringify(filtered, null, 2) }],
+          },
+        });
+      }
+
+      if (toolName === 'get_book_of_the_month') {
+        const botm = books.find((b: any) => b.isBookOfMonth) || books[0] || null;
+        return res.json({
+          jsonrpc: '2.0',
+          id,
+          result: {
+            content: [{ type: 'text', text: JSON.stringify(botm, null, 2) }],
+          },
+        });
+      }
+
+      if (toolName === 'list_members') {
+        return res.json({
+          jsonrpc: '2.0',
+          id,
+          result: {
+            content: [{ type: 'text', text: JSON.stringify(members, null, 2) }],
+          },
+        });
+      }
+
+      return res.status(400).json({
+        jsonrpc: '2.0',
+        id,
+        error: { code: -32601, message: `Unknown tool: ${toolName}` },
+      });
+    }
+
+    if (method === 'resources/list') {
+      return res.json({ jsonrpc: '2.0', id, result: { resources: card.resources } });
+    }
+
+    if (method === 'resources/read') {
+      const uri = String(params.uri || '');
+      if (uri.endsWith('/llms.txt')) {
+        return res.json({
+          jsonrpc: '2.0',
+          id,
+          result: {
+            contents: [{ uri, mimeType: 'text/markdown', text: buildLlmsTxt(origin, storeData) }],
+          },
+        });
+      }
+      if (uri.endsWith('/api/data')) {
+        return res.json({
+          jsonrpc: '2.0',
+          id,
+          result: {
+            contents: [{ uri, mimeType: 'application/json', text: JSON.stringify(storeData, null, 2) }],
+          },
+        });
+      }
+      return res.status(404).json({
+        jsonrpc: '2.0',
+        id,
+        error: { code: -32002, message: `Resource not found: ${uri}` },
+      });
+    }
+
+    return res.status(400).json({
+      jsonrpc: '2.0',
+      id,
+      error: { code: -32601, message: `Method not found: ${method}` },
+    });
+  });
+
   // Mount Vite middleware in development vs Static serving in production
   const isDev = process.env.npm_lifecycle_event === 'dev';
   const distPath = path.resolve(process.cwd(), 'dist');
   const hasDist = fs.existsSync(path.resolve(distPath, 'index.html'));
+  let viteServer: any = null;
 
   if (!isDev && hasDist) {
     console.log('[Server] Production mode: Serving compiled assets from', distPath);
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.resolve(distPath, 'index.html'));
-    });
+    app.use(express.static(distPath, { index: false }));
   } else {
     console.log('[Server] Development mode: Mounting Vite middlewares');
     const { createServer: createViteServer } = await import('vite');
-    const vite = await createViteServer({
+    viteServer = await createViteServer({
       server: {
         middlewareMode: true,
         hmr: false,
         watch: null,
+        allowedHosts: true,
       },
-      appType: 'spa',
+      appType: 'custom',
     });
-    app.use(vite.middlewares);
-    app.get('*', async (req, res, next) => {
-      const url = req.originalUrl;
-      try {
-        let template = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
-        template = await vite.transformIndexHtml(url, template);
-        res.status(200).set({ 'Content-Type': 'text/html' }).end(template);
-      } catch (e) {
-        vite.ssrFixStacktrace(e as Error);
-        next(e);
-      }
-    });
+    app.use(viteServer.middlewares);
   }
+
+  // Page Route Handler with Link Headers, Markdown Content Negotiation, SSR Metadata, and real 404s
+  app.get('*', async (req, res, next) => {
+    try {
+      const origin = getRequestOrigin(req);
+      const storeData = readStoreData();
+      const meta = resolveRouteMeta(req.path, storeData);
+
+      res.setHeader('Vary', 'Accept');
+
+      if (!meta.valid) {
+        if (wantsMarkdown(req)) {
+          return res
+            .status(404)
+            .set({ 'Content-Type': 'text/markdown; charset=utf-8' })
+            .send(
+              `# 404 — Page Not Found\n\nThe requested path \`${req.path}\` does not exist on Books & Friends.\n\n- [Return Home](${origin}/)\n- [LLMs Summary](${origin}/llms.txt)\n`
+            );
+        }
+        return res
+          .status(404)
+          .set({ 'Content-Type': 'text/html; charset=utf-8' })
+          .send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 — Page Not Found — Books &amp; Friends</title>
+    <meta name="robots" content="noindex" />
+  </head>
+  <body style="font-family:sans-serif;background:#FBFBFA;color:#1E1E1E;padding:48px 24px;text-align:center;">
+    <main style="max-width:520px;margin:0 auto;">
+      <h1 style="font-family:serif;font-size:36px;margin-bottom:12px;">404 — Page Not Found</h1>
+      <p style="color:#57534E;margin-bottom:24px;">The page <code>${escapeHtml(req.path)}</code> could not be found on Books &amp; Friends.</p>
+      <p><a href="/" style="color:#C45B38;font-weight:600;">Return to The Collective Bookshelf</a></p>
+    </main>
+  </body>
+</html>`);
+      }
+
+      res.setHeader('Link', buildLinkHeader(origin, meta.cleanPath));
+
+      if (wantsMarkdown(req)) {
+        const md = buildMarkdownForRoute(origin, meta, storeData);
+        return res
+          .status(200)
+          .set({ 'Content-Type': 'text/markdown; charset=utf-8' })
+          .send(md);
+      }
+
+      let template = !isDev && hasDist
+        ? fs.readFileSync(path.resolve(distPath, 'index.html'), 'utf-8')
+        : fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf-8');
+
+      if (viteServer) {
+        template = await viteServer.transformIndexHtml(req.originalUrl, template);
+      }
+
+      const finalHtml = injectHtmlMetadata(template, origin, meta, storeData);
+      return res.status(200).set({ 'Content-Type': 'text/html; charset=utf-8' }).end(finalHtml);
+    } catch (e) {
+      if (viteServer) {
+        viteServer.ssrFixStacktrace(e as Error);
+      }
+      next(e);
+    }
+  });
 
   const server = app.listen(port, '0.0.0.0', () => {
     console.log(`[Server] Books & Friends server running on port ${port}`);

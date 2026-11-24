@@ -1,3 +1,12 @@
+export type PageView =
+  | 'home'
+  | 'members'
+  | 'book-of-month'
+  | 'about'
+  | 'contact'
+  | 'terms'
+  | 'privacy';
+
 export interface AffiliateLink {
   store: string;
   url: string;

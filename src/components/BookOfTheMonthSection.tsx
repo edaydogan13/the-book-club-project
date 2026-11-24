@@ -28,6 +28,7 @@ interface BookOfTheMonthSectionProps {
   isAdmin?: boolean;
   currentUser?: AuthUser | null;
   onEditBook?: (book: Book) => void;
+  isStandalonePage?: boolean;
 }
 
 export const BookOfTheMonthSection: React.FC<BookOfTheMonthSectionProps> = ({
@@ -37,6 +38,7 @@ export const BookOfTheMonthSection: React.FC<BookOfTheMonthSectionProps> = ({
   isAdmin = false,
   currentUser = null,
   onEditBook,
+  isStandalonePage = false,
 }) => {
   if (!book) return null;
   const canUploadVideo = isAdmin || Boolean(currentUser);
@@ -60,9 +62,15 @@ export const BookOfTheMonthSection: React.FC<BookOfTheMonthSectionProps> = ({
               <span aria-hidden="true">·</span>
               <span>{t.curatedBy}: {book.suggesterName}</span>
             </div>
-            <h2 className="font-serif text-2xl sm:text-4xl font-normal text-stone-900 tracking-tight">
-              {t.botmTitle}
-            </h2>
+            {isStandalonePage ? (
+              <h1 className="font-serif text-3xl sm:text-5xl font-normal text-stone-900 tracking-tight">
+                {t.botmTitle}
+              </h1>
+            ) : (
+              <h2 className="font-serif text-2xl sm:text-4xl font-normal text-stone-900 tracking-tight">
+                {t.botmTitle}
+              </h2>
+            )}
           </div>
           <div className="flex items-center gap-3">
             {isAdmin && onEditBook && (

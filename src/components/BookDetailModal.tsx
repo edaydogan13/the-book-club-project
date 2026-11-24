@@ -417,9 +417,9 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                     <span aria-hidden="true">·</span>
                     <span>{language === 'en' ? `Curated by ${book.suggesterName}` : `${book.suggesterName} tarafından önerildi`}</span>
                   </div>
-                  <h1 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900 leading-tight">
+                  <h2 className="font-serif text-3xl sm:text-4xl font-bold text-stone-900 leading-tight">
                     {title}
-                  </h1>
+                  </h2>
                   {book.originalTitle && book.originalTitle !== title && (
                     <p className="text-xs text-stone-500 italic mt-0.5 font-serif">
                       {book.originalTitle}

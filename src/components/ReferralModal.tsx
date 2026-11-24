@@ -332,7 +332,12 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleNewsletterSubmit} className="space-y-4">
+                <form
+                  onSubmit={handleNewsletterSubmit}
+                  className="space-y-4"
+                  toolname="submit_newsletter_signup"
+                  tooldescription="Subscribe to the Books & Friends monthly Salon Dispatch newsletter."
+                >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                     <div>
                       <label className="block text-xs font-semibold text-stone-800 mb-1">
@@ -442,7 +447,12 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
                   </div>
                 </div>
               ) : (
-                <form onSubmit={handleReferralSubmit} className="space-y-4">
+                <form
+                  onSubmit={handleReferralSubmit}
+                  className="space-y-4"
+                  toolname="submit_membership_referral"
+                  tooldescription="Submit a referred guest membership inquiry for the Books & Friends literary salon."
+                >
                   <div>
                     <label className="block text-xs font-semibold text-stone-800 mb-1">
                       {t.modalSponsorLabel}

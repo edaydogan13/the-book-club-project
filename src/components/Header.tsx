@@ -1,11 +1,11 @@
 import React from 'react';
-import { Member, AuthUser } from '../types';
+import { Member, AuthUser, PageView } from '../types';
 import { Language, TRANSLATIONS } from '../translations';
 import { Globe, Lock, ShieldCheck, UserCheck, User, CloudCheck, RefreshCw, AlertCircle } from 'lucide-react';
 
 interface HeaderProps {
-  currentView: 'home' | 'members' | 'book-of-month';
-  onNavigate: (view: 'home' | 'members' | 'book-of-month') => void;
+  currentView: PageView;
+  onNavigate: (view: PageView) => void;
   onOpenNewsletter: () => void;
   onOpenAdmin: () => void;
   isAdmin: boolean;

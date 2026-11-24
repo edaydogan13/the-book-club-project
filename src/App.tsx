@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Book, Member, BookComment, VideoReview, ReferralApplication, SiteContent, AuthUser } from './types';
+import { Book, Member, BookComment, VideoReview, ReferralApplication, SiteContent, AuthUser, PageView } from './types';
 import { 
   INITIAL_BOOKS, 
   INITIAL_MEMBERS, 
@@ -16,6 +16,7 @@ import { TactileBookshelf } from './components/TactileBookshelf';
 import { BookOfTheMonthSection } from './components/BookOfTheMonthSection';
 import { BookDetailModal } from './components/BookDetailModal';
 import { MemberProfilePage } from './components/MemberProfilePage';
+import { AboutPage, ContactPage, TermsPage, PrivacyPage } from './components/InfoPages';
 import { ReferralModal } from './components/ReferralModal';
 import { AuthModal } from './components/AuthModal';
 import { EditSiteContentModal } from './components/EditSiteContentModal';
@@ -38,11 +39,48 @@ import {
 } from './utils/api';
 import { safeStorage } from './utils/safeStorage';
 import { translateMemberBilingualSync, autoTranslateFields } from './utils/translator';
+import { registerWebMcpTools } from './utils/webmcp';
+
+function parseRouteFromLocation(): { view: PageView; memberId?: string } {
+  if (typeof window === 'undefined') return { view: 'home' };
+  const path = window.location.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/book-of-month') return { view: 'book-of-month' };
+  if (path === '/members') return { view: 'members' };
+  if (path.startsWith('/members/')) {
+    const id = decodeURIComponent(path.slice('/members/'.length));
+    return { view: 'members', memberId: id || undefined };
+  }
+  if (path === '/about') return { view: 'about' };
+  if (path === '/contact') return { view: 'contact' };
+  if (path === '/terms') return { view: 'terms' };
+  if (path === '/privacy') return { view: 'privacy' };
+  return { view: 'home' };
+}
+
+function getPathForRoute(view: PageView, memberId?: string): string {
+  switch (view) {
+    case 'book-of-month':
+      return '/book-of-month';
+    case 'members':
+      return memberId ? `/members/${encodeURIComponent(memberId)}` : '/members';
+    case 'about':
+      return '/about';
+    case 'contact':
+      return '/contact';
+    case 'terms':
+      return '/terms';
+    case 'privacy':
+      return '/privacy';
+    default:
+      return '/';
+  }
+}
 
 export default function App() {
-  // Navigation View: 'home' | 'members' | 'book-of-month'
-  const [currentView, setCurrentView] = useState<'home' | 'members' | 'book-of-month'>('home');
-  const [selectedMemberId, setSelectedMemberId] = useState<string>('eda-aydogan');
+  const initialRoute = parseRouteFromLocation();
+  // Navigation View: 'home' | 'members' | 'book-of-month' | 'about' | 'contact' | 'terms' | 'privacy'
+  const [currentView, setCurrentView] = useState<PageView>(initialRoute.view);
+  const [selectedMemberId, setSelectedMemberId] = useState<string>(initialRoute.memberId || 'eda-aydogan');
   const [language, setLanguage] = useState<Language>('en');
 
   // Interactive Modals
@@ -208,12 +246,67 @@ export default function App() {
   // Guard against overwriting state during active modal/inline editing or in-flight mutations
   const isMutatingRef = useRef(false);
   const lastServerTimestampRef = useRef<string | null>(null);
+  const booksRef = useRef<Book[]>(books);
+  booksRef.current = books;
   const membersRef = useRef<Member[]>(members);
   membersRef.current = members;
   const [isInlineMemberEditing, setIsInlineMemberEditing] = useState(false);
   const isAnyEditModalOpen = isBookEditModalOpen || isMemberEditModalOpen || isSiteContentModalOpen || isInlineMemberEditing;
   const isAnyEditUiOpenRef = useRef(isAnyEditModalOpen);
   isAnyEditUiOpenRef.current = isAnyEditModalOpen;
+
+  const navigateTo = useCallback((view: PageView, memberId?: string) => {
+    setCurrentView(view);
+    if (memberId) {
+      setSelectedMemberId(memberId);
+    }
+    if (typeof window !== 'undefined') {
+      const targetPath = getPathForRoute(view, view === 'members' ? memberId : undefined);
+      if (window.location.pathname !== targetPath) {
+        try {
+          window.history.pushState({ view, memberId }, '', targetPath);
+        } catch {
+          // Ignore pushState errors
+        }
+      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, []);
+
+  // Keep browser Back/Forward navigation synchronized
+  useEffect(() => {
+    const onPopState = () => {
+      const parsed = parseRouteFromLocation();
+      setCurrentView(parsed.view);
+      if (parsed.memberId) {
+        setSelectedMemberId(parsed.memberId);
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  // Sync document title, meta description, and canonical URL with current route
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const member = members.find(m => m.id === selectedMemberId);
+    const routeTitles: Record<PageView, string> = {
+      home: 'Books & Friends — Private Book Club & Literary Salon',
+      'book-of-month': 'Book of the Month — Books & Friends',
+      members: member ? `${member.name} — Books & Friends` : 'Meet the Friends — Books & Friends',
+      about: 'About Us — Books & Friends',
+      contact: 'Contact & Inquiries — Books & Friends',
+      terms: 'Terms of Use — Books & Friends',
+      privacy: 'Privacy Policy — Books & Friends',
+    };
+    document.title = routeTitles[currentView] || routeTitles.home;
+
+    const canonicalEl = document.querySelector('link[rel="canonical"]');
+    if (canonicalEl && typeof window !== 'undefined') {
+      const path = getPathForRoute(currentView, currentView === 'members' && window.location.pathname.startsWith('/members/') ? selectedMemberId : undefined);
+      canonicalEl.setAttribute('href', `${window.location.origin}${path}`);
+    }
+  }, [currentView, selectedMemberId, members]);
 
   // Shared Backend Store Synchronization
   const syncWithBackend = useCallback(async (force = false) => {
@@ -453,6 +546,28 @@ export default function App() {
       isMutatingRef.current = false;
     }
   };
+
+  const submitReferralRef = useRef(handleSubmitReferral);
+  submitReferralRef.current = handleSubmitReferral;
+
+  useEffect(() => {
+    return registerWebMcpTools({
+      getBooks: () => booksRef.current,
+      getMembers: () => membersRef.current,
+      navigate: (view, memberId) => navigateTo(view, memberId),
+      submitNewsletter: async ({ name, email, interests }) => {
+        await submitReferralRef.current({
+          applicantName: name,
+          applicantEmail: email,
+          referringMemberId: 'newsletter',
+          referringMemberName: 'Books & Friends Salon',
+          reason: interests ? `Literary Interests: ${interests}` : 'Monthly Salon Newsletter & Reading Guides',
+          favoriteBook: interests || 'Salon Dispatch',
+          submissionType: 'newsletter',
+        });
+      },
+    });
+  }, [navigateTo]);
 
   // Handler: Update Referral Status
   const handleUpdateReferralStatus = async (id: string, status: 'approved' | 'declined') => {
@@ -873,10 +988,7 @@ export default function App() {
       {/* Top Bar with Books & Friends brand, Admin/Member portal, TR/EN switcher, and Newsletter sign-up */}
       <Header
         currentView={currentView}
-        onNavigate={(view) => {
-          setCurrentView(view);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        onNavigate={(view) => navigateTo(view)}
         onOpenNewsletter={() => setIsNewsletterOpen(true)}
         onOpenAdmin={() => setIsAdminModalOpen(true)}
         isAdmin={isAdmin}
@@ -885,11 +997,7 @@ export default function App() {
         onToggleLanguage={toggleLanguage}
         members={members}
         selectedMemberId={selectedMemberId}
-        onSelectMember={(id) => {
-          setSelectedMemberId(id);
-          setCurrentView('members');
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        onSelectMember={(id) => navigateTo('members', id)}
         brandName={siteContent.brandName}
         syncStatus={syncStatus}
         onManualSync={() => syncWithBackend(true)}
@@ -1097,8 +1205,45 @@ export default function App() {
               isAdmin={isAdmin}
               currentUser={currentUser}
               onEditBook={handleOpenEditBook}
+              isStandalonePage={true}
             />
           </div>
+        )}
+
+        {/* About Page */}
+        {currentView === 'about' && (
+          <AboutPage
+            language={language}
+            onNavigate={(view, memId) => navigateTo(view, memId)}
+            members={members}
+            bookCount={books.length}
+          />
+        )}
+
+        {/* Contact Page */}
+        {currentView === 'contact' && (
+          <ContactPage
+            language={language}
+            onNavigate={(view, memId) => navigateTo(view, memId)}
+            onOpenNewsletter={() => setIsNewsletterOpen(true)}
+            onSubmitNewsletter={handleSubmitReferral}
+          />
+        )}
+
+        {/* Terms of Use Page */}
+        {currentView === 'terms' && (
+          <TermsPage
+            language={language}
+            onNavigate={(view, memId) => navigateTo(view, memId)}
+          />
+        )}
+
+        {/* Privacy Policy Page */}
+        {currentView === 'privacy' && (
+          <PrivacyPage
+            language={language}
+            onNavigate={(view, memId) => navigateTo(view, memId)}
+          />
         )}
       </main>
 
@@ -1223,10 +1368,7 @@ export default function App() {
 
       {/* Clean quiet Footer */}
       <Footer
-        onNavigate={(view) => {
-          setCurrentView(view);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
+        onNavigate={(view) => navigateTo(view)}
         onOpenReferral={() => setIsNewsletterOpen(true)}
         language={language}
       />
