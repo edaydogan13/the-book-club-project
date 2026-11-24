@@ -49,6 +49,9 @@ ErrorDocument 404 /404.html
   RewriteCond %{REQUEST_FILENAME} -f
   RewriteRule ^ - [L]
 
+  # Homepage: without this the catch-all 404 rule below also matches "/"
+  RewriteRule ^/?$ /index.html [L]
+
   # Valid client-side SPA routes -> index.html
   RewriteRule ^book-of-month/?$ /index.html [L]
   RewriteRule ^members/(cemre-sirin|eda-aydogan|can-mert|ferhat-babacan|gizem-yenicikan|gokce-uysal)/?$ /index.html [L]
