@@ -399,15 +399,21 @@ export default function App() {
     };
   }, [syncWithBackend]);
 
-  // One-time migration: while the shared Firestore store has never been written, the first admin
-  // session copies the data it currently has (including edits saved only in this browser) into it.
-  // After that the store is the source of truth and this does nothing.
+  // One-time migration: while the shared Firestore store has not been seeded, the first admin session
+  // fills it from the bundled defaults, which are identical to the last data the old server store held.
+  // It deliberately ignores this browser's cached copy: a stale or half-synced local copy must never
+  // become the shared data. After that the store is the source of truth and this does nothing.
   const seedAttemptedRef = useRef(false);
   useEffect(() => {
     if (!isAdmin || seedAttemptedRef.current) return;
     seedAttemptedRef.current = true;
     (async () => {
-      const res = await seedStoreIfEmpty({ books, members, siteContent, referrals });
+      const res = await seedStoreIfEmpty({
+        books: normalizeBooks(INITIAL_BOOKS),
+        members: INITIAL_MEMBERS,
+        siteContent: INITIAL_SITE_CONTENT,
+        referrals: INITIAL_REFERRALS,
+      });
       if (res.seeded) {
         setSyncStatus('synced');
         showToast(
