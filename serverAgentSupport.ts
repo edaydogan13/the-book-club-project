@@ -811,12 +811,24 @@ export function injectHtmlMetadata(
     `<meta property="og:url" content="${escapeHtml(canonicalUrl)}" />`
   );
   html = html.replace(
+    /<meta\s+property="og:image"\s+content="[^"]*"\s*\/?>/i,
+    `<meta property="og:image" content="${escapeHtml(`${origin}/og-preview.jpg`)}" />`
+  );
+  html = html.replace(
+    /<meta\s+property="og:image:secure_url"\s+content="[^"]*"\s*\/?>/i,
+    `<meta property="og:image:secure_url" content="${escapeHtml(`${origin}/og-preview.jpg`)}" />`
+  );
+  html = html.replace(
     /<meta\s+name="twitter:title"\s+content="[^"]*"\s*\/?>/i,
     `<meta name="twitter:title" content="${escapeHtml(meta.title)}" />`
   );
   html = html.replace(
     /<meta\s+name="twitter:description"\s+content="[^"]*"\s*\/?>/i,
     `<meta name="twitter:description" content="${escapeHtml(meta.description)}" />`
+  );
+  html = html.replace(
+    /<meta\s+name="twitter:image"\s+content="[^"]*"\s*\/?>/i,
+    `<meta name="twitter:image" content="${escapeHtml(`${origin}/og-preview.jpg`)}" />`
   );
   html = html.replace(
     /<script\s+type="application\/ld\+json">[\s\S]*?<\/script>/i,

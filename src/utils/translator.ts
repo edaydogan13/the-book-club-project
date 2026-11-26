@@ -510,8 +510,12 @@ export function translateMemberBilingualSync(member: Member): Member {
     }
   }
 
+  const normalizedName =
+    member.name?.trim() === 'Gökçe Nur Uysal' ? 'Gökçenur Uysal' : member.name;
+
   return {
     ...member,
+    name: normalizedName,
     role: role.tr,
     roleEn: role.en,
     bio: bio.tr,

@@ -21,7 +21,7 @@ import {
   logoutGoogle, 
   initAuth, 
   getAccessToken 
-} from '../utils/firebase';
+} from '../utils/firebaseAuth';
 import { 
   fetchClubEmails, 
   sendClubEmail, 

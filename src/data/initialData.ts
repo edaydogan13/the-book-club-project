@@ -104,7 +104,7 @@ export const INITIAL_BOOKS: Book[] = [
     favoriteQuote: 'İstanbul’un hüznü, sadece bir duygu değil, şehrin tarihiyle nefes alan ortak bir bakış açısıdır.',
     favoriteQuoteEn: 'The hüzün of Istanbul is not just the feeling of evocative pain, but an all-encompassing, poetic state of mind.',
     suggesterId: 'gokce-uysal',
-    suggesterName: 'Gökçe Nur Uysal',
+    suggesterName: 'Gökçenur Uysal',
     month: 'Eylül 2026',
     monthEn: 'September 2026',
     monthTr: 'Eylül 2026',
@@ -116,7 +116,7 @@ export const INITIAL_BOOKS: Book[] = [
     coverImageUrl: '/covers/istanbul-tr.jpg',
     coverImageUrlTr: '/covers/istanbul-tr.jpg',
     coverImageUrlEn: '/covers/istanbul-en.jpg',
-    rating: 4.8,
+    rating: 5,
     buyLinks: {
       tr: {
         store: 'Yapı Kredi Yayınları / Amazon TR',
@@ -138,7 +138,7 @@ export const INITIAL_BOOKS: Book[] = [
     comments: [
       {
         id: 'c-ip-1',
-        authorName: 'Gökçe Nur Uysal',
+        authorName: 'Gökçenur Uysal',
         memberId: 'gokce-uysal',
         rating: 5,
         text: 'Bir kentin belleği ile bir yazarın hafızasının nasıl birbirine kenetlendiğini anlatan, İstanbul sokaklarını adımlarken insanın içini titreten bir eser.',
@@ -182,7 +182,7 @@ export const INITIAL_BOOKS: Book[] = [
     coverImageUrl: '/covers/duvar.jpg',
     coverImageUrlTr: '/covers/duvar.jpg',
     coverImageUrlEn: '/covers/the-wall.jpg',
-    rating: 4.9,
+    rating: 5,
     buyLinks: {
       tr: {
         store: 'Yapı Kredi Yayınları / Amazon TR',
@@ -260,7 +260,7 @@ export const INITIAL_BOOKS: Book[] = [
     coverImageUrl: '/covers/venedikte-olum.jpg',
     coverImageUrlTr: '/covers/venedikte-olum.jpg',
     coverImageUrlEn: '/covers/death-in-venice.jpg',
-    rating: 4.8,
+    rating: 5,
     buyLinks: {
       tr: {
         store: 'Can Yayınları / Amazon TR',
@@ -326,7 +326,7 @@ export const INITIAL_BOOKS: Book[] = [
     coverImageUrl: '/covers/zaman-siginagi.jpg',
     coverImageUrlTr: '/covers/zaman-siginagi.jpg',
     coverImageUrlEn: '/covers/time-shelter.jpg',
-    rating: 4.9,
+    rating: 5,
     buyLinks: {
       tr: {
         store: 'Metis Yayınları / Amazon TR',
@@ -392,7 +392,7 @@ export const INITIAL_BOOKS: Book[] = [
     coverImageUrl: '/covers/algi-kapilari-tr.jpg',
     coverImageUrlTr: '/covers/algi-kapilari-tr.jpg',
     coverImageUrlEn: '/covers/doors-of-perception-en.jpg',
-    rating: 4.6,
+    rating: 5,
     buyLinks: {
       tr: {
         store: 'İthaki / 6.45 / Amazon TR',
@@ -458,7 +458,7 @@ export const INITIAL_BOOKS: Book[] = [
     coverImageUrl: '/covers/almanack-of-naval-tr.jpg',
     coverImageUrlTr: '/covers/almanack-of-naval-tr.jpg',
     coverImageUrlEn: '/covers/almanack-of-naval-en.jpg',
-    rating: 4.9,
+    rating: 5,
     buyLinks: {
       tr: {
         store: 'Kronik Kitap / Amazon TR',
@@ -524,7 +524,7 @@ export const INITIAL_BOOKS: Book[] = [
     coverImageUrl: '/covers/besinci-anlasma-tr.jpg',
     coverImageUrlTr: '/covers/besinci-anlasma-tr.jpg',
     coverImageUrlEn: '/covers/the-fifth-agreement-en.jpg',
-    rating: 4.8,
+    rating: 5,
     buyLinks: {
       tr: {
         store: 'Ötesi Yayıncılık / Amazon TR',
@@ -590,7 +590,7 @@ export const INITIAL_BOOKS: Book[] = [
     coverImageUrl: '/covers/designing-your-life-tr.jpg',
     coverImageUrlTr: '/covers/designing-your-life-tr.jpg',
     coverImageUrlEn: '/covers/designing-your-life-en.jpg',
-    rating: 4.7,
+    rating: 5,
     buyLinks: {
       tr: {
         store: 'Optimist Yayınları / Amazon TR',
@@ -866,7 +866,7 @@ export const EDA_EXTRA_BOOKS: Book[] = [
     coverImageUrl: '/covers/nefaset-lokantasi-tr.jpg',
     coverImageUrlTr: '/covers/nefaset-lokantasi-tr.jpg',
     coverImageUrlEn: '/covers/nefaset-lokantasi-en.jpg',
-    rating: 4.8,
+    rating: 5,
     buyLinks: {
       tr: {
         store: 'Yapı Kredi Yayınları / Amazon TR',
@@ -934,7 +934,7 @@ export const EDA_EXTRA_BOOKS: Book[] = [
     coverImageUrl: '/covers/kizil-veba-tr.jpg',
     coverImageUrlTr: '/covers/kizil-veba-tr.jpg',
     coverImageUrlEn: '/covers/the-scarlet-plague-en.jpg',
-    rating: 4.8,
+    rating: 5,
     buyLinks: {
       tr: {
         store: 'İş Bankası Kültür Yayınları / Amazon TR',
@@ -1002,7 +1002,7 @@ export const EDA_EXTRA_BOOKS: Book[] = [
     coverImageUrl: '/covers/gece-yarisi-kutuphanesi-tr.jpg',
     coverImageUrlTr: '/covers/gece-yarisi-kutuphanesi-tr.jpg',
     coverImageUrlEn: '/covers/the-midnight-library-en.jpg',
-    rating: 4.8,
+    rating: 5,
     buyLinks: {
       tr: {
         store: 'Domingo Yayınevi / Amazon TR',
@@ -1095,7 +1095,7 @@ export const MEMBER_CREDENTIALS: UserCredential[] = [
     password: 'gokce123',
     role: 'member',
     memberId: 'gokce-uysal',
-    displayName: 'Gökçe Nur Uysal',
+    displayName: 'Gökçenur Uysal',
     avatarUrl: '/members/gokcenuruysal.jpg',
   },
 ];
@@ -1263,10 +1263,10 @@ export const INITIAL_MEMBERS: Member[] = [
     ]
   },
 
-  // 6. Gökçe Nur Uysal
+  // 6. Gökçenur Uysal
   {
     id: 'gokce-uysal',
-    name: 'Gökçe Nur Uysal',
+    name: 'Gökçenur Uysal',
     role: 'Sürdürülebilirlik Uzmanı & Kent Anlatıcısı',
     roleEn: 'Sustainability Specialist & Urban Narrator',
     bio: 'Çevre mühendisi ve sürdürülebilirlik uzmanı (King’s College London M.Sc.). Çevresel Sürdürülebilirlik Podcast sunucusu ve IAF Türkiye ATTI Lideri. Ekoloji, döngüsel ekonomi, kentsel bellek ve edebiyatta mekan anlatılarına derin bir ilgi duyuyor.',
@@ -1542,6 +1542,25 @@ export const getBookBinding = (binding: string | undefined, lang: Language): str
   return binding;
 };
 
+export const normalizeMemberName = (name: string | undefined): string => {
+  if (!name) return '';
+  return name.trim() === 'Gökçe Nur Uysal' ? 'Gökçenur Uysal' : name;
+};
+
+export const computeBookRating = (book: Partial<Book> | null | undefined): number => {
+  if (!book) return 5;
+  const ratedComments = (book.comments || []).filter(
+    (c) => typeof c?.rating === 'number' && !Number.isNaN(c.rating) && c.rating > 0
+  );
+  if (ratedComments.length > 0) {
+    const sum = ratedComments.reduce((acc, c) => acc + c.rating, 0);
+    return Math.round((sum / ratedComments.length) * 10) / 10;
+  }
+  return typeof book.rating === 'number' && !Number.isNaN(book.rating) && book.rating > 0
+    ? book.rating
+    : 5;
+};
+
 export const normalizeBook = (book: Partial<Book> & { id: string }): Book => {
   const initialMatch = INITIAL_BOOKS.find(ib => ib.id === book.id) || EDA_EXTRA_BOOKS.find(eb => eb.id === book.id);
   const base: Book = initialMatch ? { ...initialMatch } : {
@@ -1576,7 +1595,14 @@ export const normalizeBook = (book: Partial<Book> & { id: string }): Book => {
     },
   };
 
-  return {
+  const mergedComments = ((book.comments && book.comments.length > 0) ? book.comments : (base.comments || [])).map(c => ({
+    ...c,
+    authorName: normalizeMemberName(c.authorName),
+  }));
+
+  const normalizedSuggesterName = normalizeMemberName(book.suggesterName || base.suggesterName);
+
+  const mergedBook: Book = {
     ...base,
     ...book,
     title: book.title || base.title,
@@ -1585,6 +1611,7 @@ export const normalizeBook = (book: Partial<Book> & { id: string }): Book => {
     genreEn: book.genreEn || base.genreEn,
     synopsis: book.synopsis || base.synopsis,
     synopsisEn: book.synopsisEn || base.synopsisEn,
+    suggesterName: normalizedSuggesterName,
     favoriteQuote: book.favoriteQuote !== undefined ? book.favoriteQuote : base.favoriteQuote,
     favoriteQuoteEn: book.favoriteQuoteEn !== undefined ? book.favoriteQuoteEn : base.favoriteQuoteEn,
     coverImageUrl: book.coverImageUrl !== undefined ? book.coverImageUrl : base.coverImageUrl,
@@ -1593,7 +1620,7 @@ export const normalizeBook = (book: Partial<Book> & { id: string }): Book => {
     monthEn: book.monthEn || base.monthEn,
     monthTr: book.monthTr || base.monthTr,
     videoReview: book.videoReview !== undefined ? book.videoReview : base.videoReview,
-    comments: (book.comments && book.comments.length > 0) ? book.comments : (base.comments || []),
+    comments: mergedComments,
     buyLinks: {
       tr: book.buyLinks?.tr || base.buyLinks?.tr || { store: 'Amazon TR', url: '#', language: 'TR' as const, affiliateTag: AFFILIATE_TAG_TR },
       en: book.buyLinks?.en || base.buyLinks?.en || { store: 'Amazon', url: '#', language: 'EN' as const, affiliateTag: AFFILIATE_TAG_EN },
@@ -1603,6 +1630,11 @@ export const normalizeBook = (book: Partial<Book> & { id: string }): Book => {
       thicknessMm: book.physicalDetails?.thicknessMm || base.physicalDetails?.thicknessMm || 22,
       format: book.physicalDetails?.format || base.physicalDetails?.format || '13.5 × 21 cm',
     },
+  };
+
+  return {
+    ...mergedBook,
+    rating: computeBookRating(mergedBook),
   };
 };
 

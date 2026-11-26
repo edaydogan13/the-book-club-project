@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Book } from '../types';
 import { Language } from '../translations';
-import { getBookTitle, getBookMonth } from '../data/initialData';
+import { getBookTitle, getBookMonth, computeBookRating } from '../data/initialData';
 import { Sparkles, ExternalLink, Bookmark, Trash2 } from 'lucide-react';
 
 interface TactileBookSpineProps {
@@ -73,7 +73,7 @@ export const TactileBookSpine: React.FC<TactileBookSpineProps> = ({
               </>
             )}
           </span>
-          <span className="text-amber-400">★ {book.rating}</span>
+          <span className="text-amber-400">★ {computeBookRating(book)}</span>
         </div>
 
         {onRemove && (

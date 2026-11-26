@@ -9,7 +9,8 @@ import {
   getBookGenre,
   getCommentText,
   getVideoTitle,
-  getBookBinding
+  getBookBinding,
+  computeBookRating
 } from '../data/initialData';
 import { 
   ArrowRight, 
@@ -130,7 +131,7 @@ export const BookOfTheMonthSection: React.FC<BookOfTheMonthSectionProps> = ({
                   {displayMonth}
                 </span>
                 <span className="bg-amber-400 text-stone-950 font-bold px-1.5 py-0.5 rounded-xs">
-                  {book.rating} ★
+                  {computeBookRating(book)} ★
                 </span>
               </div>
 

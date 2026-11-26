@@ -110,7 +110,7 @@ export const Header: React.FC<HeaderProps> = ({
                 title={language === 'en' ? 'Salon data synchronized across sessions. Click to check for updates.' : 'Salon verileri oturumlar arasında güncel. Yenilemek için tıklayın.'}
               >
                 <CloudCheck className="w-3.5 h-3.5 text-stone-400" />
-                <span className="text-[10px] uppercase tracking-wider">{language === 'en' ? 'Synced' : 'Eşit'}</span>
+                <span className="text-[10px] uppercase tracking-wider">{language === 'en' ? 'Synced' : 'Eşitlendi'}</span>
               </button>
             )}
 

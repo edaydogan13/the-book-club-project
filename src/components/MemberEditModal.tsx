@@ -20,7 +20,7 @@ const PRESET_AVATARS = [
   { label: 'Can Mert', url: '/members/canmert.jpg' },
   { label: 'Ferhat Babacan', url: '/members/ferhatbabacan.webp' },
   { label: 'Gizem Yeniçıkan', url: '/members/gizemyenicikan.jpg' },
-  { label: 'Gökçe Nur Uysal', url: '/members/gokcenuruysal.jpg' },
+  { label: 'Gökçenur Uysal', url: '/members/gokcenuruysal.jpg' },
 ];
 
 export const MemberEditModal: React.FC<MemberEditModalProps> = ({

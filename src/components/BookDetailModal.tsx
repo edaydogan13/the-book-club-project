@@ -12,7 +12,8 @@ import {
   getCommentQuote,
   getVideoTitle,
   getVideoNotes,
-  getBookBinding
+  getBookBinding,
+  computeBookRating
 } from '../data/initialData';
 import { translateTextSync, translateTextWithAI } from '../utils/translator';
 import { useCurrentDate, getCurrentMonthYear } from '../utils/dateUtils';
@@ -405,7 +406,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                   </div>
                   <div className="flex justify-between">
                     <span className="text-stone-500">{t.modalRating}</span>
-                    <span className="font-medium text-amber-700">★ {book.rating} / 5</span>
+                    <span className="font-medium text-amber-700">★ {computeBookRating(book)} / 5</span>
                   </div>
                 </div>
               </div>
@@ -659,7 +660,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                       <option value="Mert (Can Mert)">Mert (Can Mert)</option>
                       <option value="Ferhat Babacan">Ferhat Babacan</option>
                       <option value="Gizem Yeniçıkan">Gizem Yeniçıkan</option>
-                      <option value="Gökçe Nur Uysal">Gökçe Nur Uysal</option>
+                      <option value="Gökçenur Uysal">Gökçenur Uysal</option>
                       <option value="Guest Reader">{language === 'en' ? 'Guest Reader' : 'Misafir Okur'}</option>
                     </select>
                   </div>

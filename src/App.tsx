@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react';
 import { Book, Member, BookComment, VideoReview, ReferralApplication, SiteContent, AuthUser, PageView } from './types';
 import { 
   INITIAL_BOOKS, 
   INITIAL_MEMBERS, 
   INITIAL_REFERRALS, 
   INITIAL_SITE_CONTENT,
-  EDA_EXTRA_BOOKS,
   getBookTitle,
+  computeBookRating,
+  normalizeBook,
   normalizeBooks
 } from './data/initialData';
 import { Language, TRANSLATIONS } from './translations';
@@ -14,35 +15,28 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { TactileBookshelf } from './components/TactileBookshelf';
 import { BookOfTheMonthSection } from './components/BookOfTheMonthSection';
-import { BookDetailModal } from './components/BookDetailModal';
-import { MemberProfilePage } from './components/MemberProfilePage';
-import { AboutPage, ContactPage, TermsPage, PrivacyPage } from './components/InfoPages';
-import { ReferralModal } from './components/ReferralModal';
-import { AuthModal } from './components/AuthModal';
-import { EditSiteContentModal } from './components/EditSiteContentModal';
-import { BookEditModal } from './components/BookEditModal';
-import { MemberEditModal } from './components/MemberEditModal';
-import { WorkspaceModal } from './components/WorkspaceModal';
-import { AdminFloatingBar } from './components/AdminFloatingBar';
-import { Edit3, Plus, Sparkles, CloudCheck, RefreshCw, CheckCircle2, AlertCircle, X } from 'lucide-react';
-import { 
-  fetchClubData, 
-  saveClubData,
-  seedStoreIfEmpty,
-  saveBookApi, 
-  deleteBookApi, 
-  saveMemberApi, 
-  saveSiteContentApi, 
-  addCommentApi, 
-  updateVideoApi,
-  addReferralApi,
-  updateReferralStatusApi
-} from './utils/api';
+import { Edit3, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { safeStorage } from './utils/safeStorage';
-import { translateMemberBilingualSync, autoTranslateFields } from './utils/translator';
+import { translateMemberBilingualSync } from './utils/translator';
 import { registerWebMcpTools } from './utils/webmcp';
 import { dispatchSubmissionEmail } from './utils/emailDispatch';
 import { useCurrentDate, getCurrentMonthName } from './utils/dateUtils';
+
+const BookDetailModal = lazy(() => import('./components/BookDetailModal').then(m => ({ default: m.BookDetailModal })));
+const MemberProfilePage = lazy(() => import('./components/MemberProfilePage').then(m => ({ default: m.MemberProfilePage })));
+const AboutPage = lazy(() => import('./components/InfoPages').then(m => ({ default: m.AboutPage })));
+const ContactPage = lazy(() => import('./components/InfoPages').then(m => ({ default: m.ContactPage })));
+const TermsPage = lazy(() => import('./components/InfoPages').then(m => ({ default: m.TermsPage })));
+const PrivacyPage = lazy(() => import('./components/InfoPages').then(m => ({ default: m.PrivacyPage })));
+const ReferralModal = lazy(() => import('./components/ReferralModal').then(m => ({ default: m.ReferralModal })));
+const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
+const EditSiteContentModal = lazy(() => import('./components/EditSiteContentModal').then(m => ({ default: m.EditSiteContentModal })));
+const BookEditModal = lazy(() => import('./components/BookEditModal').then(m => ({ default: m.BookEditModal })));
+const MemberEditModal = lazy(() => import('./components/MemberEditModal').then(m => ({ default: m.MemberEditModal })));
+const WorkspaceModal = lazy(() => import('./components/WorkspaceModal').then(m => ({ default: m.WorkspaceModal })));
+const AdminFloatingBar = lazy(() => import('./components/AdminFloatingBar').then(m => ({ default: m.AdminFloatingBar })));
+
+const loadApi = () => import('./utils/api');
 
 function parseRouteFromLocation(): { view: PageView; memberId?: string } {
   if (typeof window === 'undefined') return { view: 'home' };
@@ -181,8 +175,11 @@ export default function App() {
           avatarUrl: m.id === 'cemre-sirin' && (!m.avatarUrl || m.avatarUrl === '/members/cemresirin.jpg') 
             ? '/members/cemresirin.webp?v=2' 
             : (m.avatarUrl || initialMatch.avatarUrl),
-          books: (m.books && m.books.length > 0) ? m.books : initialMatch.books
-        } : m;
+          books: (m.books && m.books.length > 0) ? m.books.map(b => normalizeBook(b)) : initialMatch.books
+        } : {
+          ...m,
+          books: Array.isArray(m.books) ? m.books.map(b => normalizeBook(b)) : [],
+        };
         return translateMemberBilingualSync(merged);
       });
     };
@@ -312,6 +309,13 @@ export default function App() {
     }
   }, [currentView, selectedMemberId, members]);
 
+  // Sync <html lang> attribute with selected UI language (critical for Turkish uppercase İ/I casing)
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = language;
+    }
+  }, [language]);
+
   // Shared Backend Store Synchronization
   const syncWithBackend = useCallback(async (force = false) => {
     // If a mutation is currently in-flight, avoid racing with server response
@@ -321,6 +325,7 @@ export default function App() {
     if (isAnyEditUiOpenRef.current && !force) return;
 
     try {
+      const { fetchClubData } = await loadApi();
       const serverData = await fetchClubData();
       if (!serverData) return;
 
@@ -333,7 +338,14 @@ export default function App() {
         setBooks(normalizeBooks(serverData.books));
       }
       if (Array.isArray(serverData.members) && serverData.members.length > 0) {
-        setMembers(serverData.members.map(m => translateMemberBilingualSync(m)));
+        setMembers(
+          serverData.members.map((m) =>
+            translateMemberBilingualSync({
+              ...m,
+              books: Array.isArray(m.books) ? m.books.map((b) => normalizeBook(b)) : [],
+            })
+          )
+        );
       }
       if (serverData.siteContent && serverData.siteContent.brandName) {
         setSiteContent(serverData.siteContent);
@@ -411,6 +423,7 @@ export default function App() {
     if (!isAdmin || seedAttemptedRef.current) return;
     seedAttemptedRef.current = true;
     (async () => {
+      const { seedStoreIfEmpty } = await loadApi();
       const res = await seedStoreIfEmpty({
         books: normalizeBooks(INITIAL_BOOKS),
         members: INITIAL_MEMBERS,
@@ -477,20 +490,31 @@ export default function App() {
       timestamp: new Date().toLocaleDateString(language === 'en' ? 'en-US' : 'tr-TR', { month: 'short', day: 'numeric', year: 'numeric' })
     };
 
-    // Optimistic local update
+    // Optimistic local update with recalculated club rating
+    const withAddedComment = (b: Book): Book => {
+      const comments = [newComment, ...(b.comments || [])];
+      return {
+        ...b,
+        comments,
+        rating: computeBookRating({ ...b, comments }),
+      };
+    };
+
     setBooks(prev =>
-      prev.map(b => b.id === bookId ? { ...b, comments: [newComment, ...(b.comments || [])] } : b)
+      prev.map(b => b.id === bookId ? withAddedComment(b) : b)
     );
     setActiveBookModal(prev =>
-      prev && prev.id === bookId ? { ...prev, comments: [newComment, ...(prev.comments || [])] } : prev
+      prev && prev.id === bookId ? withAddedComment(prev) : prev
     );
 
     try {
+      const { addCommentApi } = await loadApi();
       const res = await addCommentApi(bookId, newComment);
       if (res.success) {
         if (Array.isArray(res.books)) {
-          setBooks(res.books);
-          const updatedActive = res.books.find(b => b.id === bookId);
+          const normalized = normalizeBooks(res.books);
+          setBooks(normalized);
+          const updatedActive = normalized.find(b => b.id === bookId);
           if (updatedActive) setActiveBookModal(updatedActive);
         }
         if (res.lastUpdated) lastServerTimestampRef.current = res.lastUpdated;
@@ -524,11 +548,13 @@ export default function App() {
     );
 
     try {
+      const { updateVideoApi } = await loadApi();
       const res = await updateVideoApi(bookId, video);
       if (res.success) {
         if (Array.isArray(res.books)) {
-          setBooks(res.books);
-          const updatedActive = res.books.find(b => b.id === bookId);
+          const normalized = normalizeBooks(res.books);
+          setBooks(normalized);
+          const updatedActive = normalized.find(b => b.id === bookId);
           if (updatedActive) setActiveBookModal(updatedActive);
         }
         if (res.lastUpdated) lastServerTimestampRef.current = res.lastUpdated;
@@ -563,6 +589,7 @@ export default function App() {
     setReferrals(prev => [newApp, ...prev]);
 
     try {
+      const { addReferralApi } = await loadApi();
       const res = await addReferralApi(newApp);
       if (res.success) {
         if (Array.isArray(res.referrals)) setReferrals(res.referrals);
@@ -627,6 +654,7 @@ export default function App() {
     setReferrals(prev => prev.map(r => r.id === id ? { ...r, status } : r));
 
     try {
+      const { updateReferralStatusApi } = await loadApi();
       const res = await updateReferralStatusApi(id, status);
       if (res.success) {
         if (Array.isArray(res.referrals)) setReferrals(res.referrals);
@@ -662,9 +690,19 @@ export default function App() {
     }
 
     try {
+      const { saveMemberApi } = await loadApi();
       const res = await saveMemberApi(sanitized);
       if (res.success) {
-        if (Array.isArray(res.members)) setMembers(res.members.map(m => translateMemberBilingualSync(m)));
+        if (Array.isArray(res.members)) {
+          setMembers(
+            res.members.map(m =>
+              translateMemberBilingualSync({
+                ...m,
+                books: Array.isArray(m.books) ? m.books.map(b => normalizeBook(b)) : [],
+              })
+            )
+          );
+        }
         if (res.lastUpdated) lastServerTimestampRef.current = res.lastUpdated;
         setSyncStatus('synced');
         showToast(language === 'en' ? 'Member profile updated & synced' : 'Üye profili güncellendi ve eşitlendi', 'success');
@@ -713,6 +751,7 @@ export default function App() {
     setMembers(prev => prev.map(m => m.id === memberId ? sanitized : m));
 
     try {
+      const { saveMemberApi } = await loadApi();
       const res = await saveMemberApi(sanitized);
       if (res.success && res.lastUpdated) {
         lastServerTimestampRef.current = res.lastUpdated;
@@ -731,6 +770,7 @@ export default function App() {
     setSiteContent(updated);
 
     try {
+      const { saveSiteContentApi } = await loadApi();
       const res = await saveSiteContentApi(updated);
       if (res.success) {
         if (res.siteContent) setSiteContent(res.siteContent);
@@ -789,6 +829,7 @@ export default function App() {
     }
 
     try {
+      const { saveBookApi } = await loadApi();
       const res = await saveBookApi(bookToSave);
       if (res.success) {
         if (Array.isArray(res.books)) {
@@ -827,6 +868,7 @@ export default function App() {
     }
 
     try {
+      const { deleteBookApi } = await loadApi();
       const res = await deleteBookApi(bookId);
       if (res.success) {
         if (Array.isArray(res.books)) setBooks(normalizeBooks(res.books));
@@ -861,9 +903,10 @@ export default function App() {
     const matched = updated.find(b => b.id === bookId);
     if (matched) {
       try {
+        const { saveBookApi } = await loadApi();
         const res = await saveBookApi(matched);
         if (res.success) {
-          if (Array.isArray(res.books)) setBooks(res.books);
+          if (Array.isArray(res.books)) setBooks(normalizeBooks(res.books));
           if (res.lastUpdated) lastServerTimestampRef.current = res.lastUpdated;
           setSyncStatus('synced');
           showToast(language === 'en' ? 'Book of the month updated' : 'Ayın kitabı güncellendi', 'success');
@@ -916,9 +959,19 @@ export default function App() {
     }
 
     try {
+      const { saveMemberApi } = await loadApi();
       const res = await saveMemberApi(sanitized);
       if (res.success) {
-        if (Array.isArray(res.members)) setMembers(res.members.map(m => translateMemberBilingualSync(m)));
+        if (Array.isArray(res.members)) {
+          setMembers(
+            res.members.map(m =>
+              translateMemberBilingualSync({
+                ...m,
+                books: Array.isArray(m.books) ? m.books.map(b => normalizeBook(b)) : [],
+              })
+            )
+          );
+        }
         if (res.lastUpdated) lastServerTimestampRef.current = res.lastUpdated;
         setSyncStatus('synced');
         showToast(language === 'en' ? 'Member saved & synced' : 'Üye kaydedildi ve eşitlendi', 'success');
@@ -948,6 +1001,7 @@ export default function App() {
     }
 
     try {
+      const { saveClubData } = await loadApi();
       const res = await saveClubData({
         books,
         members: remaining,
@@ -1223,24 +1277,26 @@ export default function App() {
         {/* Members Profile Page */}
         {currentView === 'members' && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-            <MemberProfilePage
-              members={members}
-              selectedMemberId={selectedMemberId}
-              onSelectMember={setSelectedMemberId}
-              onUpdateMember={handleUpdateMember}
-              onSelectBook={(book) => handleOpenBookModal(book, false, selectedMemberId)}
-              language={language}
-              isAdmin={isAdmin}
-              currentUser={currentUser}
-              onOpenAdmin={() => setIsAdminModalOpen(true)}
-              onOpenAuth={() => setIsAdminModalOpen(true)}
-              onAddMember={handleOpenAddMember}
-              onDeleteMember={handleDeleteMember}
-              clubBooks={books}
-              onAddBookToClub={handleSaveBook}
-              onPatchMemberFields={handlePatchMemberFields}
-              onEditingChange={setIsInlineMemberEditing}
-            />
+            <Suspense fallback={<div className="min-h-[40vh]" />}>
+              <MemberProfilePage
+                members={members}
+                selectedMemberId={selectedMemberId}
+                onSelectMember={setSelectedMemberId}
+                onUpdateMember={handleUpdateMember}
+                onSelectBook={(book) => handleOpenBookModal(book, false, selectedMemberId)}
+                language={language}
+                isAdmin={isAdmin}
+                currentUser={currentUser}
+                onOpenAdmin={() => setIsAdminModalOpen(true)}
+                onOpenAuth={() => setIsAdminModalOpen(true)}
+                onAddMember={handleOpenAddMember}
+                onDeleteMember={handleDeleteMember}
+                clubBooks={books}
+                onAddBookToClub={handleSaveBook}
+                onPatchMemberFields={handlePatchMemberFields}
+                onEditingChange={setIsInlineMemberEditing}
+              />
+            </Suspense>
           </div>
         )}
 
@@ -1261,159 +1317,199 @@ export default function App() {
 
         {/* About Page */}
         {currentView === 'about' && (
-          <AboutPage
-            language={language}
-            onNavigate={(view, memId) => navigateTo(view, memId)}
-            members={members}
-            bookCount={books.length}
-          />
+          <Suspense fallback={<div className="min-h-[40vh]" />}>
+            <AboutPage
+              language={language}
+              onNavigate={(view, memId) => navigateTo(view, memId)}
+              members={members}
+              bookCount={books.length}
+            />
+          </Suspense>
         )}
 
         {/* Contact Page */}
         {currentView === 'contact' && (
-          <ContactPage
-            language={language}
-            onNavigate={(view, memId) => navigateTo(view, memId)}
-            onOpenNewsletter={() => setIsNewsletterOpen(true)}
-            onSubmitNewsletter={handleSubmitReferral}
-          />
+          <Suspense fallback={<div className="min-h-[40vh]" />}>
+            <ContactPage
+              language={language}
+              onNavigate={(view, memId) => navigateTo(view, memId)}
+              onOpenNewsletter={() => setIsNewsletterOpen(true)}
+              onSubmitNewsletter={handleSubmitReferral}
+            />
+          </Suspense>
         )}
 
         {/* Terms of Use Page */}
         {currentView === 'terms' && (
-          <TermsPage
-            language={language}
-            onNavigate={(view, memId) => navigateTo(view, memId)}
-          />
+          <Suspense fallback={<div className="min-h-[40vh]" />}>
+            <TermsPage
+              language={language}
+              onNavigate={(view, memId) => navigateTo(view, memId)}
+            />
+          </Suspense>
         )}
 
         {/* Privacy Policy Page */}
         {currentView === 'privacy' && (
-          <PrivacyPage
-            language={language}
-            onNavigate={(view, memId) => navigateTo(view, memId)}
-          />
+          <Suspense fallback={<div className="min-h-[40vh]" />}>
+            <PrivacyPage
+              language={language}
+              onNavigate={(view, memId) => navigateTo(view, memId)}
+            />
+          </Suspense>
         )}
       </main>
 
       {/* Book Detail Modal */}
-      <BookDetailModal
-        book={activeBookModal}
-        onClose={() => {
-          setActiveBookModal(null);
-          setModalInitialVideoUpload(false);
-          setActiveBookShelfMemberId(null);
-        }}
-        onAddComment={handleAddComment}
-        onUpdateVideo={handleUpdateVideo}
-        language={language}
-        isAdmin={isAdmin}
-        currentUser={currentUser}
-        initialOpenVideoUpload={modalInitialVideoUpload}
-        onEditBook={handleOpenEditBook}
-        onSetBookOfMonth={handleSetBookOfMonth}
-        onRemoveFromMemberShelf={
-          activeBookShelfMemberId && (isAdmin || currentUser?.memberId === activeBookShelfMemberId)
-            ? (bookId) => {
-                const memberToUpdate = members.find(m => m.id === activeBookShelfMemberId);
-                if (memberToUpdate) {
-                  handleUpdateMember({
-                    ...memberToUpdate,
-                    books: memberToUpdate.books.filter(b => b.id !== bookId)
-                  });
-                }
-              }
-            : undefined
-        }
-        memberShelfOwnerName={
-          activeBookShelfMemberId
-            ? members.find(m => m.id === activeBookShelfMemberId)?.name
-            : undefined
-        }
-      />
+      {activeBookModal && (
+        <Suspense fallback={null}>
+          <BookDetailModal
+            book={activeBookModal}
+            onClose={() => {
+              setActiveBookModal(null);
+              setModalInitialVideoUpload(false);
+              setActiveBookShelfMemberId(null);
+            }}
+            onAddComment={handleAddComment}
+            onUpdateVideo={handleUpdateVideo}
+            language={language}
+            isAdmin={isAdmin}
+            currentUser={currentUser}
+            initialOpenVideoUpload={modalInitialVideoUpload}
+            onEditBook={handleOpenEditBook}
+            onSetBookOfMonth={handleSetBookOfMonth}
+            onRemoveFromMemberShelf={
+              activeBookShelfMemberId && (isAdmin || currentUser?.memberId === activeBookShelfMemberId)
+                ? (bookId) => {
+                    const memberToUpdate = members.find(m => m.id === activeBookShelfMemberId);
+                    if (memberToUpdate) {
+                      handleUpdateMember({
+                        ...memberToUpdate,
+                        books: memberToUpdate.books.filter(b => b.id !== bookId)
+                      });
+                    }
+                  }
+                : undefined
+            }
+            memberShelfOwnerName={
+              activeBookShelfMemberId
+                ? members.find(m => m.id === activeBookShelfMemberId)?.name
+                : undefined
+            }
+          />
+        </Suspense>
+      )}
 
       {/* Newsletter & Referral Modal */}
-      <ReferralModal
-        isOpen={isNewsletterOpen}
-        onClose={() => setIsNewsletterOpen(false)}
-        language={language}
-        members={members}
-        referrals={referrals}
-        onSubmitReferral={handleSubmitReferral}
-        onUpdateStatus={handleUpdateReferralStatus}
-        currentUser={currentUser}
-        isAdmin={isAdmin}
-      />
+      {isNewsletterOpen && (
+        <Suspense fallback={null}>
+          <ReferralModal
+            isOpen={isNewsletterOpen}
+            onClose={() => setIsNewsletterOpen(false)}
+            language={language}
+            members={members}
+            referrals={referrals}
+            onSubmitReferral={handleSubmitReferral}
+            onUpdateStatus={handleUpdateReferralStatus}
+            currentUser={currentUser}
+            isAdmin={isAdmin}
+          />
+        </Suspense>
+      )}
 
       {/* Member & Administrator Access Portal Modal */}
-      <AuthModal
-        isOpen={isAdminModalOpen}
-        onClose={() => setIsAdminModalOpen(false)}
-        language={language}
-        currentUser={currentUser}
-        onLogin={handleLogin}
-        onLogout={handleLogout}
-        onNavigate={(view) => {
-          setCurrentView(view);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }}
-        onOpenReferrals={() => setIsNewsletterOpen(true)}
-        onOpenEditSite={() => setIsSiteContentModalOpen(true)}
-        onOpenAddBook={handleOpenAddBook}
-        onOpenAddMember={handleOpenAddMember}
-        onSelectMember={(memId) => {
-          setSelectedMemberId(memId);
-          setCurrentView('members');
-        }}
-      />
+      {isAdminModalOpen && (
+        <Suspense fallback={null}>
+          <AuthModal
+            isOpen={isAdminModalOpen}
+            onClose={() => setIsAdminModalOpen(false)}
+            language={language}
+            currentUser={currentUser}
+            onLogin={handleLogin}
+            onLogout={handleLogout}
+            onNavigate={(view) => {
+              setCurrentView(view);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onOpenReferrals={() => setIsNewsletterOpen(true)}
+            onOpenEditSite={() => setIsSiteContentModalOpen(true)}
+            onOpenAddBook={handleOpenAddBook}
+            onOpenAddMember={handleOpenAddMember}
+            onSelectMember={(memId) => {
+              setSelectedMemberId(memId);
+              setCurrentView('members');
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Admin Quick Action Floating Bar (Only shown for Admin role) */}
-      <AdminFloatingBar
-        isAdmin={isAdmin}
-        onOpenEditSite={() => setIsSiteContentModalOpen(true)}
-        onOpenAddBook={handleOpenAddBook}
-        onOpenAddMember={handleOpenAddMember}
-        onOpenReferrals={() => setIsNewsletterOpen(true)}
-        onSignOut={handleLogout}
-        language={language}
-      />
+      {isAdmin && (
+        <Suspense fallback={null}>
+          <AdminFloatingBar
+            isAdmin={isAdmin}
+            onOpenEditSite={() => setIsSiteContentModalOpen(true)}
+            onOpenAddBook={handleOpenAddBook}
+            onOpenAddMember={handleOpenAddMember}
+            onOpenReferrals={() => setIsNewsletterOpen(true)}
+            onSignOut={handleLogout}
+            language={language}
+          />
+        </Suspense>
+      )}
 
       {/* Admin Site Content & Stats Modal */}
-      <EditSiteContentModal
-        isOpen={isSiteContentModalOpen}
-        onClose={() => setIsSiteContentModalOpen(false)}
-        siteContent={siteContent}
-        onSave={handleSaveSiteContent}
-        language={language}
-      />
+      {isSiteContentModalOpen && (
+        <Suspense fallback={null}>
+          <EditSiteContentModal
+            isOpen={isSiteContentModalOpen}
+            onClose={() => setIsSiteContentModalOpen(false)}
+            siteContent={siteContent}
+            onSave={handleSaveSiteContent}
+            language={language}
+          />
+        </Suspense>
+      )}
 
       {/* Admin Book Add/Edit Modal */}
-      <BookEditModal
-        isOpen={isBookEditModalOpen}
-        onClose={() => setIsBookEditModalOpen(false)}
-        bookToEdit={bookToEdit}
-        onSaveBook={handleSaveBook}
-        onDeleteBook={handleDeleteBook}
-        members={members}
-        language={language}
-      />
+      {isBookEditModalOpen && (
+        <Suspense fallback={null}>
+          <BookEditModal
+            isOpen={isBookEditModalOpen}
+            onClose={() => setIsBookEditModalOpen(false)}
+            bookToEdit={bookToEdit}
+            onSaveBook={handleSaveBook}
+            onDeleteBook={handleDeleteBook}
+            members={members}
+            language={language}
+          />
+        </Suspense>
+      )}
 
       {/* Admin Member Add/Edit Modal */}
-      <MemberEditModal
-        isOpen={isMemberEditModalOpen}
-        onClose={() => setIsMemberEditModalOpen(false)}
-        memberToEdit={memberToEdit}
-        onSaveMember={handleSaveMember}
-        onDeleteMember={handleDeleteMember}
-        language={language}
-      />
+      {isMemberEditModalOpen && (
+        <Suspense fallback={null}>
+          <MemberEditModal
+            isOpen={isMemberEditModalOpen}
+            onClose={() => setIsMemberEditModalOpen(false)}
+            memberToEdit={memberToEdit}
+            onSaveMember={handleSaveMember}
+            onDeleteMember={handleDeleteMember}
+            language={language}
+          />
+        </Suspense>
+      )}
 
       {/* Google Workspace & Firebase Hub Modal */}
-      <WorkspaceModal
-        isOpen={isWorkspaceOpen}
-        onClose={() => setIsWorkspaceOpen(false)}
-        language={language}
-      />
+      {isWorkspaceOpen && (
+        <Suspense fallback={null}>
+          <WorkspaceModal
+            isOpen={isWorkspaceOpen}
+            onClose={() => setIsWorkspaceOpen(false)}
+            language={language}
+          />
+        </Suspense>
+      )}
 
       {/* Clean quiet Footer */}
       <Footer

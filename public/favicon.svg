@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="14" fill="#1C1917" />
+  <rect x="3" y="3" width="58" height="58" rx="11" stroke="#C45B38" stroke-opacity="0.35" stroke-width="1.5" />
+  <!-- Open editorial book pages -->
+  <path d="M14 20.5C14 18.8431 15.3431 17.5 17 17.5H27.5C29.9853 17.5 32 19.5147 32 22V45.5C30.4 43.9 28.2 43 25.8 43H16.5C15.1193 43 14 41.8807 14 40.5V20.5Z" fill="#FBFBFA" />
+  <path d="M50 20.5C50 18.8431 48.6569 17.5 47 17.5H36.5C34.0147 17.5 32 19.5147 32 22V45.5C33.6 43.9 35.8 43 38.2 43H47.5C48.8807 43 50 41.8807 50 40.5V20.5Z" fill="#F4F1EA" />
+  <!-- Subtle page lines -->
+  <path d="M18.5 24H26.5M18.5 29H26.5M18.5 34H24.5" stroke="#1C1917" stroke-opacity="0.28" stroke-width="1.6" stroke-linecap="round" />
+  <path d="M37.5 24H45.5M37.5 29H45.5M37.5 34H43.5" stroke="#1C1917" stroke-opacity="0.28" stroke-width="1.6" stroke-linecap="round" />
+  <!-- Terracotta ribbon bookmark -->
+  <path d="M36 16H42.5V35.5L39.25 32.5L36 35.5V16Z" fill="#C45B38" />
+</svg>

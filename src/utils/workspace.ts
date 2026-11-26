@@ -1,4 +1,4 @@
-import { getAccessToken } from './firebase';
+import { getAccessToken } from './firebaseAuth';
 
 export interface GmailMessageHeader {
   name: string;
