@@ -221,7 +221,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 
             <div className="pt-4 border-t border-stone-200 flex justify-between items-center">
               <span className="text-[11px] text-stone-400 font-mono">
-                Admin: edaydogannn@gmail.com
+                Admin: hello@booksnfriends.com
               </span>
               <button
                 type="button"

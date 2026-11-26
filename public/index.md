@@ -27,4 +27,4 @@ The compelling, inspiring, and comically inventive story of a young man coming o
 
 ---
 **Navigation:** [Home](https://booksnfriends.com/) | [Book of the Month](https://booksnfriends.com/book-of-month) | [Meet the Friends](https://booksnfriends.com/members) | [About](https://booksnfriends.com/about) | [Contact](https://booksnfriends.com/contact) | [Terms](https://booksnfriends.com/terms) | [Privacy](https://booksnfriends.com/privacy)
-**Contact:** [edaydogannn@gmail.com](mailto:edaydogannn@gmail.com) | **LLMs Summary:** [llms.txt](https://booksnfriends.com/llms.txt)
+**Contact:** [hello@booksnfriends.com](mailto:hello@booksnfriends.com) | **LLMs Summary:** [llms.txt](https://booksnfriends.com/llms.txt)

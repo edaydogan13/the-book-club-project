@@ -2,7 +2,8 @@ import { Book, Member, SalonRSVP, ReferralApplication, SiteContent, UserCredenti
 import { Language } from '../translations';
 import { translateTextSync, looksLikeEnglish, hasTurkishChars } from '../utils/translator';
 
-export const AFFILIATE_EMAIL = 'edaydogannn@gmail.com';
+export const CONTACT_EMAIL = 'hello@booksnfriends.com';
+export const AFFILIATE_EMAIL = 'hello@booksnfriends.com';
 export const AFFILIATE_TAG_TR = 'edaydogannn-21';
 export const AFFILIATE_TAG_EN = 'edaydogannn-20';
 

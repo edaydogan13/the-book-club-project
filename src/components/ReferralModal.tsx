@@ -1,6 +1,12 @@
 import React, { useState } from 'react';
 import { Member, ReferralApplication, AuthUser } from '../types';
 import { Language, TRANSLATIONS } from '../translations';
+import {
+  CONTACT_EMAIL,
+  buildMailtoHref,
+  dispatchSubmissionEmail,
+  EmailDispatchResult,
+} from '../utils/emailDispatch';
 import { 
   X, 
   Mail, 
@@ -15,7 +21,8 @@ import {
   Check,
   Archive,
   UserPlus,
-  Compass
+  Compass,
+  ExternalLink
 } from 'lucide-react';
 
 interface ReferralModalProps {
@@ -24,7 +31,7 @@ interface ReferralModalProps {
   language: Language;
   members: Member[];
   referrals: ReferralApplication[];
-  onSubmitReferral: (app: Omit<ReferralApplication, 'id' | 'status' | 'submittedAt'>) => void;
+  onSubmitReferral: (app: Omit<ReferralApplication, 'id' | 'status' | 'submittedAt'>) => Promise<boolean> | void;
   onUpdateStatus: (id: string, status: 'approved' | 'declined') => void;
   currentUser?: AuthUser | null;
   isAdmin?: boolean;
@@ -51,7 +58,10 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
   const [nlName, setNlName] = useState('');
   const [nlEmail, setNlEmail] = useState('');
   const [nlInterests, setNlInterests] = useState('');
+  const [nlSubmitting, setNlSubmitting] = useState(false);
   const [nlSuccess, setNlSuccess] = useState(false);
+  const [nlDispatchInfo, setNlDispatchInfo] = useState<EmailDispatchResult | null>(null);
+  const [nlMailtoUrl, setNlMailtoUrl] = useState('');
 
   // Referral form state
   const [refName, setRefName] = useState('');
@@ -59,7 +69,10 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
   const [referringMemberId, setReferringMemberId] = useState(members[0]?.id || 'eda-aydogan');
   const [refFavoriteBook, setRefFavoriteBook] = useState('');
   const [refReason, setRefReason] = useState('');
+  const [refSubmitting, setRefSubmitting] = useState(false);
   const [refSuccess, setRefSuccess] = useState(false);
+  const [refDispatchInfo, setRefDispatchInfo] = useState<EmailDispatchResult | null>(null);
+  const [refMailtoUrl, setRefMailtoUrl] = useState('');
 
   // Queue filter state
   const [queueFilter, setQueueFilter] = useState<'all' | 'newsletter' | 'referral'>('all');
@@ -67,97 +80,111 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
   if (!isOpen) return null;
 
   // Handle Newsletter Submission
-  const handleNewsletterSubmit = (e: React.FormEvent) => {
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nlName.trim() || !nlEmail.trim()) return;
+    if (!nlName.trim() || !nlEmail.trim() || nlSubmitting) return;
 
-    onSubmitReferral({
-      applicantName: nlName.trim(),
-      applicantEmail: nlEmail.trim(),
-      referringMemberId: 'newsletter',
-      referringMemberName: 'Books & Friends Salon',
-      reason: nlInterests.trim() ? `Literary Interests: ${nlInterests.trim()}` : 'Monthly Salon Newsletter & Reading Guides',
-      favoriteBook: nlInterests.trim() || 'Salon Dispatch',
-      submissionType: 'newsletter',
-    });
-
-    // Send email dispatch to edaydogannn@gmail.com with subject: "newsletter submission for Books & Friends"
-    const subject = encodeURIComponent("newsletter submission for Books & Friends");
-    const body = encodeURIComponent(
+    const cleanName = nlName.trim();
+    const cleanEmail = nlEmail.trim();
+    const cleanInterests = nlInterests.trim();
+    const subject = 'newsletter submission for Books & Friends';
+    const mailBody =
       `New Newsletter Subscriber for Books & Friends:\n\n` +
-      `Name: ${nlName.trim()}\n` +
-      `Email: ${nlEmail.trim()}\n` +
-      `Literary Focus / Interests: ${nlInterests.trim() || 'General Salon Dispatch'}\n` +
-      `Date: ${new Date().toLocaleString()}`
-    );
+      `Name: ${cleanName}\n` +
+      `Email: ${cleanEmail}\n` +
+      `Literary Focus / Interests: ${cleanInterests || 'General Salon Dispatch'}\n` +
+      `Date: ${new Date().toLocaleString()}`;
 
+    setNlSubmitting(true);
     try {
-      const mailtoLink = `mailto:edaydogannn@gmail.com?subject=${subject}&body=${body}`;
-      const link = document.createElement('a');
-      link.href = mailtoLink;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch {
-      // Background link
-    }
+      const [, emailRes] = await Promise.all([
+        Promise.resolve(
+          onSubmitReferral({
+            applicantName: cleanName,
+            applicantEmail: cleanEmail,
+            referringMemberId: 'newsletter',
+            referringMemberName: 'Books & Friends Salon',
+            reason: cleanInterests ? `Literary Interests: ${cleanInterests}` : 'Monthly Salon Newsletter & Reading Guides',
+            favoriteBook: cleanInterests || 'Salon Dispatch',
+            submissionType: 'newsletter',
+          })
+        ),
+        dispatchSubmissionEmail({
+          submissionType: 'newsletter',
+          name: cleanName,
+          email: cleanEmail,
+          subject,
+          message: mailBody,
+        }),
+      ]);
 
-    setNlSuccess(true);
-    setNlName('');
-    setNlEmail('');
-    setNlInterests('');
+      setNlDispatchInfo(emailRes);
+      setNlMailtoUrl(buildMailtoHref(subject, mailBody));
+      setNlSuccess(true);
+      setNlName('');
+      setNlEmail('');
+      setNlInterests('');
+    } finally {
+      setNlSubmitting(false);
+    }
   };
 
   // Handle Joining / Referral Submission
-  const handleReferralSubmit = (e: React.FormEvent) => {
+  const handleReferralSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!refName.trim() || !refEmail.trim() || !refReason.trim()) return;
+    if (!refName.trim() || !refEmail.trim() || !refReason.trim() || refSubmitting) return;
 
+    const cleanName = refName.trim();
+    const cleanEmail = refEmail.trim();
+    const cleanFavorite = refFavoriteBook.trim() || 'Undisclosed';
+    const cleanReason = refReason.trim();
     const sponsor = members.find(m => m.id === referringMemberId);
     const sponsorName = sponsor ? sponsor.name : 'Eda Aydoğan';
-
-    onSubmitReferral({
-      applicantName: refName.trim(),
-      applicantEmail: refEmail.trim(),
-      referringMemberId,
-      referringMemberName: sponsorName,
-      favoriteBook: refFavoriteBook.trim() || 'Undisclosed',
-      reason: refReason.trim(),
-      submissionType: 'referral',
-    });
-
-    // Send email dispatch to edaydogannn@gmail.com with subject: "referral submission for Books & Friends"
-    const subject = encodeURIComponent("referral submission for Books & Friends");
-    const body = encodeURIComponent(
+    const subject = 'referral submission for Books & Friends';
+    const mailBody =
       `New Membership Referral Application for Books & Friends:\n\n` +
-      `Applicant Name: ${refName.trim()}\n` +
-      `Email: ${refEmail.trim()}\n` +
+      `Applicant Name: ${cleanName}\n` +
+      `Email: ${cleanEmail}\n` +
       `Referring Member Sponsor: ${sponsorName}\n` +
-      `Impactful / Key Book: ${refFavoriteBook.trim()}\n` +
-      `Statement & Interests:\n${refReason.trim()}\n\n` +
-      `Date: ${new Date().toLocaleString()}`
-    );
+      `Impactful / Key Book: ${cleanFavorite}\n` +
+      `Statement & Interests:\n${cleanReason}\n\n` +
+      `Date: ${new Date().toLocaleString()}`;
 
+    setRefSubmitting(true);
     try {
-      const mailtoLink = `mailto:edaydogannn@gmail.com?subject=${subject}&body=${body}`;
-      const link = document.createElement('a');
-      link.href = mailtoLink;
-      link.target = '_blank';
-      link.rel = 'noopener noreferrer';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch {
-      // Background link
-    }
+      const [, emailRes] = await Promise.all([
+        Promise.resolve(
+          onSubmitReferral({
+            applicantName: cleanName,
+            applicantEmail: cleanEmail,
+            referringMemberId,
+            referringMemberName: sponsorName,
+            favoriteBook: cleanFavorite,
+            reason: cleanReason,
+            submissionType: 'referral',
+          })
+        ),
+        dispatchSubmissionEmail({
+          submissionType: 'referral',
+          name: cleanName,
+          email: cleanEmail,
+          subject,
+          message: mailBody,
+          referringMember: sponsorName,
+          favoriteBook: cleanFavorite,
+        }),
+      ]);
 
-    setRefSuccess(true);
-    setRefName('');
-    setRefEmail('');
-    setRefFavoriteBook('');
-    setRefReason('');
+      setRefDispatchInfo(emailRes);
+      setRefMailtoUrl(buildMailtoHref(subject, mailBody));
+      setRefSuccess(true);
+      setRefName('');
+      setRefEmail('');
+      setRefFavoriteBook('');
+      setRefReason('');
+    } finally {
+      setRefSubmitting(false);
+    }
   };
 
   // Filtered queue items
@@ -311,8 +338,28 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
                       Subject: newsletter submission for Books & Friends
                     </p>
                     <p className="text-[11px] text-emerald-700 font-mono">
-                      Recipient: edaydogannn@gmail.com
+                      Recipient: {CONTACT_EMAIL}
                     </p>
+                    {nlDispatchInfo && (
+                      <p className="text-[11px] text-emerald-800 pt-1">
+                        {nlDispatchInfo.needsActivation
+                          ? (language === 'en'
+                              ? `Email relay initialized: check ${CONTACT_EMAIL} inbox to activate automated delivery.`
+                              : `E-posta yönlendirme etkinleştirme bağlantısı ${CONTACT_EMAIL} adresine gönderildi.`)
+                          : nlDispatchInfo.delivered
+                          ? (language === 'en' ? `Email notification dispatched to ${CONTACT_EMAIL}.` : `${CONTACT_EMAIL} adresine bildirim e-postası gönderildi.`)
+                          : nlDispatchInfo.message}
+                      </p>
+                    )}
+                    {nlMailtoUrl && (
+                      <a
+                        href={nlMailtoUrl}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#C45B38] hover:underline pt-1"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>{language === 'en' ? 'Open copy in email app' : 'E-posta uygulamasında aç'}</span>
+                      </a>
+                    )}
                   </div>
                   <div className="pt-2 flex items-center justify-center gap-2">
                     <button
@@ -387,10 +434,15 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
 
                   <button
                     type="submit"
-                    className="w-full py-3 bg-[#C45B38] hover:bg-[#a94827] text-white rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                    disabled={nlSubmitting}
+                    className="w-full py-3 bg-[#C45B38] hover:bg-[#a94827] disabled:opacity-60 text-white rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
                   >
                     <Send className="w-3.5 h-3.5" />
-                    <span>{language === 'en' ? 'Subscribe to Salon Dispatch' : 'Bültene Abone Ol'}</span>
+                    <span>
+                      {nlSubmitting
+                        ? (language === 'en' ? 'Sending...' : 'Gönderiliyor...')
+                        : (language === 'en' ? 'Subscribe to Salon Dispatch' : 'Bültene Abone Ol')}
+                    </span>
                   </button>
                 </form>
               )}
@@ -426,8 +478,28 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
                       Subject: referral submission for Books & Friends
                     </p>
                     <p className="text-[11px] text-emerald-700 font-mono">
-                      Recipient: edaydogannn@gmail.com
+                      Recipient: {CONTACT_EMAIL}
                     </p>
+                    {refDispatchInfo && (
+                      <p className="text-[11px] text-emerald-800 pt-1">
+                        {refDispatchInfo.needsActivation
+                          ? (language === 'en'
+                              ? `Email relay initialized: check ${CONTACT_EMAIL} inbox to activate automated delivery.`
+                              : `E-posta yönlendirme etkinleştirme bağlantısı ${CONTACT_EMAIL} adresine gönderildi.`)
+                          : refDispatchInfo.delivered
+                          ? (language === 'en' ? `Email notification dispatched to ${CONTACT_EMAIL}.` : `${CONTACT_EMAIL} adresine bildirim e-postası gönderildi.`)
+                          : refDispatchInfo.message}
+                      </p>
+                    )}
+                    {refMailtoUrl && (
+                      <a
+                        href={refMailtoUrl}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#C45B38] hover:underline pt-1"
+                      >
+                        <ExternalLink className="w-3 h-3" />
+                        <span>{language === 'en' ? 'Open copy in email app' : 'E-posta uygulamasında aç'}</span>
+                      </a>
+                    )}
                   </div>
                   <div className="pt-2 flex items-center justify-center gap-2">
                     <button
@@ -530,10 +602,15 @@ export const ReferralModal: React.FC<ReferralModalProps> = ({
 
                   <button
                     type="submit"
-                    className="w-full py-3 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
+                    disabled={refSubmitting}
+                    className="w-full py-3 bg-stone-900 hover:bg-stone-800 disabled:opacity-60 text-white rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-2 shadow-sm cursor-pointer"
                   >
                     <Send className="w-3.5 h-3.5" />
-                    <span>{t.modalSubmitBtn}</span>
+                    <span>
+                      {refSubmitting
+                        ? (language === 'en' ? 'Sending...' : 'Gönderiliyor...')
+                        : t.modalSubmitBtn}
+                    </span>
                   </button>
                 </form>
               )}

@@ -41,6 +41,7 @@ import {
 import { safeStorage } from './utils/safeStorage';
 import { translateMemberBilingualSync, autoTranslateFields } from './utils/translator';
 import { registerWebMcpTools } from './utils/webmcp';
+import { dispatchSubmissionEmail } from './utils/emailDispatch';
 import { useCurrentDate, getCurrentMonthName } from './utils/dateUtils';
 
 function parseRouteFromLocation(): { view: PageView; memberId?: string } {
@@ -548,7 +549,7 @@ export default function App() {
   };
 
   // Handler: Submit Newsletter & Referral Application (Awaited with backend persistence)
-  const handleSubmitReferral = async (appData: Omit<ReferralApplication, 'id' | 'status' | 'submittedAt'>) => {
+  const handleSubmitReferral = async (appData: Omit<ReferralApplication, 'id' | 'status' | 'submittedAt'>): Promise<boolean> => {
     const prevReferrals = referrals;
     isMutatingRef.current = true;
     setSyncStatus('syncing');
@@ -568,15 +569,18 @@ export default function App() {
         if (res.lastUpdated) lastServerTimestampRef.current = res.lastUpdated;
         setSyncStatus('synced');
         showToast(language === 'en' ? 'Application submitted & synced' : 'Başvuru başarıyla iletildi ve eşitlendi', 'success');
+        return true;
       } else {
         setReferrals(prevReferrals);
         setSyncStatus('error');
         showToast(language === 'en' ? 'Failed to submit application' : 'Başvuru kaydedilemedi', 'error');
+        return false;
       }
     } catch {
       setReferrals(prevReferrals);
       setSyncStatus('error');
       showToast(language === 'en' ? 'Network error submitting application' : 'Başvuru iletilirken hata', 'error');
+      return false;
     } finally {
       isMutatingRef.current = false;
     }
@@ -591,15 +595,25 @@ export default function App() {
       getMembers: () => membersRef.current,
       navigate: (view, memberId) => navigateTo(view, memberId),
       submitNewsletter: async ({ name, email, interests }) => {
-        await submitReferralRef.current({
-          applicantName: name,
-          applicantEmail: email,
-          referringMemberId: 'newsletter',
-          referringMemberName: 'Books & Friends Salon',
-          reason: interests ? `Literary Interests: ${interests}` : 'Monthly Salon Newsletter & Reading Guides',
-          favoriteBook: interests || 'Salon Dispatch',
-          submissionType: 'newsletter',
-        });
+        const reason = interests ? `Literary Interests: ${interests}` : 'Monthly Salon Newsletter & Reading Guides';
+        await Promise.all([
+          submitReferralRef.current({
+            applicantName: name,
+            applicantEmail: email,
+            referringMemberId: 'newsletter',
+            referringMemberName: 'Books & Friends Salon',
+            reason,
+            favoriteBook: interests || 'Salon Dispatch',
+            submissionType: 'newsletter',
+          }),
+          dispatchSubmissionEmail({
+            submissionType: 'newsletter',
+            name,
+            email,
+            subject: 'newsletter submission for Books & Friends',
+            message: `New Newsletter Subscriber for Books & Friends:\n\nName: ${name}\nEmail: ${email}\nInterests: ${reason}`,
+          }),
+        ]);
       },
     });
   }, [navigateTo]);

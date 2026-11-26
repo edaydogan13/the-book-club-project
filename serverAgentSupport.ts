@@ -215,7 +215,7 @@ export function resolveRouteMeta(reqPath: string, storeData: StoreData | null): 
       view: 'contact',
       title: 'Contact & Inquiries — Books & Friends',
       description:
-        'Contact Books & Friends curators at edaydogannn@gmail.com for book suggestions, salon dispatches, or guest referral inquiries.',
+        'Contact Books & Friends curators at hello@booksnfriends.com for book suggestions, salon dispatches, or guest referral inquiries.',
     };
   }
 
@@ -314,14 +314,14 @@ export function buildLlmsTxt(origin: string, storeData: StoreData | null): strin
     '',
     '> An intimate six-member private book club and literary salon across Istanbul, Dubai, New York, and San Francisco, reading one curated book per month since November 2025.',
     '',
-    'Founded by Cemre Şirin and curated by Eda Aydoğan. All correspondence and membership referral inquiries can be sent to edaydogannn@gmail.com.',
+    'Founded by Cemre Şirin and curated by Eda Aydoğan. All correspondence and membership referral inquiries can be sent to hello@booksnfriends.com.',
     '',
     '## Key Pages',
     `- [The Collective Bookshelf (Home)](${origin}/): Browse all ${books.length} curated books, Book of the Month highlight, and club reading stats.`,
     `- [Book of the Month](${origin}/book-of-month): Current monthly selection, synopsis, discussion themes, and member reflections.`,
     `- [Meet the Friends](${origin}/members): Profiles, 2026 reading goals, and personal shelves of our ${members.length} members.`,
     `- [About Books & Friends](${origin}/about): Collective mission, curatorial history, and member directory.`,
-    `- [Contact & Inquiries](${origin}/contact): Editorial email (edaydogannn@gmail.com) and Salon Dispatch newsletter signup.`,
+    `- [Contact & Inquiries](${origin}/contact): Editorial email (hello@booksnfriends.com) and Salon Dispatch newsletter signup.`,
     `- [Terms of Use](${origin}/terms): Salon guidelines, contributor rights, and affiliate disclosure.`,
     `- [Privacy Policy](${origin}/privacy): Data stewardship, Google Workspace OAuth notice, and deletion requests.`,
     '',
@@ -458,8 +458,8 @@ export function buildJsonLd(origin: string, meta: RouteMeta, storeData: StoreDat
       name: 'Books & Friends',
       alternateName: 'The Six — Private Book Club',
       url: `${origin}/`,
-      email: 'edaydogannn@gmail.com',
-      telephone: 'No public phone — correspondence via edaydogannn@gmail.com',
+      email: 'hello@booksnfriends.com',
+      telephone: 'No public phone — correspondence via hello@booksnfriends.com',
       address: {
         '@type': 'PostalAddress',
         streetAddress: 'Istanbul Chapter — Private Literary Salon',
@@ -480,8 +480,8 @@ export function buildJsonLd(origin: string, meta: RouteMeta, storeData: StoreDat
       contactPoint: {
         '@type': 'ContactPoint',
         contactType: 'editorial support',
-        email: 'edaydogannn@gmail.com',
-        telephone: 'No public phone — correspondence via edaydogannn@gmail.com',
+        email: 'hello@booksnfriends.com',
+        telephone: 'No public phone — correspondence via hello@booksnfriends.com',
         availableLanguage: ['English', 'Turkish'],
       },
       sameAs,
@@ -574,7 +574,7 @@ export function buildMarkdownForRoute(origin: string, meta: RouteMeta, storeData
     '',
     '---',
     `**Navigation:** [Home](${origin}/) | [Book of the Month](${origin}/book-of-month) | [Meet the Friends](${origin}/members) | [About](${origin}/about) | [Contact](${origin}/contact) | [Terms](${origin}/terms) | [Privacy](${origin}/privacy)`,
-    `**Contact:** [edaydogannn@gmail.com](mailto:edaydogannn@gmail.com) | **LLMs Summary:** [llms.txt](${origin}/llms.txt)`,
+    `**Contact:** [hello@booksnfriends.com](mailto:hello@booksnfriends.com) | **LLMs Summary:** [llms.txt](${origin}/llms.txt)`,
   ].join('\n');
 
   if (meta.view === 'book-of-month' && botm) {
@@ -648,7 +648,7 @@ export function buildMarkdownForRoute(origin: string, meta: RouteMeta, storeData
     return [
       '# Contact Books & Friends',
       '',
-      '- **Editorial & Salon Email:** [edaydogannn@gmail.com](mailto:edaydogannn@gmail.com)',
+      '- **Editorial & Salon Email:** [hello@booksnfriends.com](mailto:hello@booksnfriends.com)',
       '- **Telephone:** No public telephone line (all correspondence handled via email)',
       '- **Founding Location:** Istanbul, 34000, TR (Private Literary Salon)',
       '- **Chapters:** Istanbul · Dubai · New York · San Francisco',
@@ -663,7 +663,7 @@ export function buildMarkdownForRoute(origin: string, meta: RouteMeta, storeData
       '',
       '1. **Purpose:** Books & Friends (booksnfriends.com) is a curated reading archive and literary journal.',
       '2. **Intellectual Property:** Member reflections remain the work of their authors.',
-      '3. **Affiliate Disclosure:** Bookstore links may include partner tags registered to edaydogannn@gmail.com to fund collective book acquisitions.',
+      '3. **Affiliate Disclosure:** Bookstore links may include partner tags associated with hello@booksnfriends.com to fund collective book acquisitions.',
       navFooter,
     ].join('\n');
   }
@@ -674,7 +674,7 @@ export function buildMarkdownForRoute(origin: string, meta: RouteMeta, storeData
       '',
       '1. **Data Collection:** Only voluntarily submitted newsletter signups, referral requests, and member profile updates are stored.',
       '2. **Google Workspace:** Authorized curators may optionally connect Gmail and Google Forms via client-side OAuth.',
-      '3. **Deletion Requests:** Email [edaydogannn@gmail.com](mailto:edaydogannn@gmail.com) at any time.',
+      '3. **Deletion Requests:** Email [hello@booksnfriends.com](mailto:hello@booksnfriends.com) at any time.',
       navFooter,
     ].join('\n');
   }
@@ -717,7 +717,7 @@ export function buildStaticSsrRootHtml(origin: string, meta: RouteMeta, storeDat
       <a href="/terms">Terms of Use</a> |
       <a href="/privacy">Privacy Policy</a>
     </nav>
-    <p>Contact: <a href="mailto:edaydogannn@gmail.com">edaydogannn@gmail.com</a></p>
+    <p>Contact: <a href="mailto:hello@booksnfriends.com">hello@booksnfriends.com</a></p>
   `;
 
   let bodyHtml = '';
@@ -731,7 +731,7 @@ export function buildStaticSsrRootHtml(origin: string, meta: RouteMeta, storeDat
     bodyHtml = `
       <h1>Contact Books &amp; Friends</h1>
       <p>${escapeHtml(meta.description)}</p>
-      <p>Editorial email: <a href="mailto:edaydogannn@gmail.com">edaydogannn@gmail.com</a></p>
+      <p>Editorial email: <a href="mailto:hello@booksnfriends.com">hello@booksnfriends.com</a></p>
       <p>Location: Istanbul, 34000, TR (Private Literary Salon across Istanbul, Dubai, New York, and San Francisco). Telephone: No public phone — correspondence via email.</p>
     `;
   } else if (meta.view === 'terms') {

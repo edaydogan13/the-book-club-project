@@ -55,9 +55,9 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({
   // Gmail states
   const [emails, setEmails] = useState<GmailMessageSummary[]>([]);
   const [isLoadingEmails, setIsLoadingEmails] = useState(false);
-  const [emailQuery, setEmailQuery] = useState('subject:"Books & Friends" OR subject:Book OR label:INBOX');
+  const [emailQuery, setEmailQuery] = useState('to:hello@booksnfriends.com OR subject:"Books & Friends" OR label:INBOX');
   const [showSendDialog, setShowSendDialog] = useState(false);
-  const [recipient, setRecipient] = useState('');
+  const [recipient, setRecipient] = useState('hello@booksnfriends.com');
   const [subject, setSubject] = useState('[Books & Friends] Salon Newsletter & Reflection');
   const [bodyText, setBodyText] = useState(
     'Dear Fellow Reader,\n\nHere are our salon notes and reflections for this month\'s reading.\n\nWarmly,\nBooks & Friends Club'
@@ -468,7 +468,7 @@ export const WorkspaceModal: React.FC<WorkspaceModalProps> = ({
                         type="email"
                         value={recipient}
                         onChange={(e) => setRecipient(e.target.value)}
-                        placeholder="member@example.com"
+                        placeholder="hello@booksnfriends.com"
                         required
                         className="w-full text-xs p-2 bg-white border border-stone-300 rounded-lg focus:outline-none"
                       />

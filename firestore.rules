@@ -8,7 +8,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return isSignedIn() && (
-        request.auth.token.email == 'edaydogannn@gmail.com' ||
+        request.auth.token.email == 'hello@booksnfriends.com' ||
         exists(/databases/$(database)/documents/admins/$(request.auth.uid))
       );
     }
@@ -43,6 +43,12 @@ service cloud.firestore {
 
     // Site configuration
     match /siteContent/{contentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Store sync metadata
+    match /meta/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }

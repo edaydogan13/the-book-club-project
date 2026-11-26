@@ -133,13 +133,13 @@ export const TRANSLATIONS = {
     modalEmailLabel: 'Email Address *',
     modalFavoriteBookLabel: 'A book that permanently shifted your perspective *',
     modalReasonLabel: 'Why do you wish to join our newsletter & salon? *',
-    modalSubmitBtn: 'Submit & Send Referral to edaydogannn@gmail.com',
+    modalSubmitBtn: 'Submit & Send Referral to hello@booksnfriends.com',
     modalSuccessTitle: 'Submission Sent Successfully!',
-    modalSuccessDesc: 'Your submission has been dispatched to edaydogannn@gmail.com with subject "referral submission for Books & Friends". We will be in touch soon!',
+    modalSuccessDesc: 'Your submission has been dispatched to hello@booksnfriends.com with subject "referral submission for Books & Friends". We will be in touch soon!',
     
     // Footer
     footerAbout: 'An intimate literary circle of six readers dedicated to long-form philosophical inquiry, authentic physical editions, and monthly salon discussions.',
-    footerAffiliate: 'Affiliate Transparency: E-commerce partner programs registered with edaydogannn@gmail.com generate commissions per sale to support library book acquisitions.'
+    footerAffiliate: 'Affiliate Transparency: E-commerce partner programs associated with hello@booksnfriends.com generate commissions per sale to support library book acquisitions.'
   },
   tr: {
     brand: 'Books & Friends',
@@ -273,12 +273,12 @@ export const TRANSLATIONS = {
     modalEmailLabel: 'E-posta Adresiniz *',
     modalFavoriteBookLabel: 'Bakış açınızı kalıcı olarak değiştiren bir kitap *',
     modalReasonLabel: 'Bültenimize ve salonumuza neden katılmak istiyorsunuz? *',
-    modalSubmitBtn: 'Başvuruyu Gönder (edaydogannn@gmail.com)',
+    modalSubmitBtn: 'Başvuruyu Gönder (hello@booksnfriends.com)',
     modalSuccessTitle: 'Başvurunuz Başarıyla İletildi!',
-    modalSuccessDesc: 'Başvurunuz "referral submission for Books & Friends" konusuyla edaydogannn@gmail.com adresine bildirildi. En kısa sürede iletişime geçeceğiz!',
+    modalSuccessDesc: 'Başvurunuz "referral submission for Books & Friends" konusuyla hello@booksnfriends.com adresine bildirildi. En kısa sürede iletişime geçeceğiz!',
     
     // Footer
     footerAbout: 'Uzun soluklu felsefi sorgulama, yavaş okuma ve aylık derin salon tartışmalarına adanmış altı kişilik samimi bir kitap kulübü.',
-    footerAffiliate: 'Satış Ortaklığı Şeffaflığı: edaydogannn@gmail.com adına kayıtlı e-ticaret satış ortaklığı programları aracılığıyla komisyon sağlanmaktadır.'
+    footerAffiliate: 'Satış Ortaklığı Şeffaflığı: hello@booksnfriends.com iletişim adresiyle bağlantılı e-ticaret satış ortaklığı programları aracılığıyla komisyon sağlanmaktadır.'
   }
 };

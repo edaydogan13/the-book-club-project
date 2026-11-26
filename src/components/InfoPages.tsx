@@ -3,6 +3,11 @@ import { Member, PageView, ReferralApplication } from '../types';
 import { Language } from '../translations';
 import { getMemberRole } from '../data/initialData';
 import {
+  CONTACT_EMAIL,
+  dispatchSubmissionEmail,
+  EmailDispatchResult,
+} from '../utils/emailDispatch';
+import {
   BookOpen,
   Mail,
   Send,
@@ -166,7 +171,7 @@ export const AboutPage: React.FC<AboutPageProps> = ({
 
 interface ContactPageProps extends InfoPageBaseProps {
   onOpenNewsletter: () => void;
-  onSubmitNewsletter: (app: Omit<ReferralApplication, 'id' | 'status' | 'submittedAt'>) => void;
+  onSubmitNewsletter: (app: Omit<ReferralApplication, 'id' | 'status' | 'submittedAt'>) => Promise<boolean> | void;
 }
 
 export const ContactPage: React.FC<ContactPageProps> = ({
@@ -177,24 +182,49 @@ export const ContactPage: React.FC<ContactPageProps> = ({
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [dispatchInfo, setDispatchInfo] = useState<EmailDispatchResult | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim()) return;
-    onSubmitNewsletter({
-      applicantName: name.trim(),
-      applicantEmail: email.trim(),
-      referringMemberId: 'newsletter',
-      referringMemberName: 'Books & Friends Salon',
-      reason: message.trim() || 'Direct salon contact & newsletter dispatch request',
-      favoriteBook: 'Salon Dispatch',
-      submissionType: 'newsletter',
-    });
-    setSubmitted(true);
-    setName('');
-    setEmail('');
-    setMessage('');
+    if (!name.trim() || !email.trim() || submitting) return;
+
+    const cleanName = name.trim();
+    const cleanEmail = email.trim();
+    const cleanMessage = message.trim() || 'Direct salon contact & newsletter dispatch request';
+
+    setSubmitting(true);
+    try {
+      const [, emailRes] = await Promise.all([
+        Promise.resolve(
+          onSubmitNewsletter({
+            applicantName: cleanName,
+            applicantEmail: cleanEmail,
+            referringMemberId: 'newsletter',
+            referringMemberName: 'Books & Friends Salon',
+            reason: cleanMessage,
+            favoriteBook: 'Salon Dispatch',
+            submissionType: 'newsletter',
+          })
+        ),
+        dispatchSubmissionEmail({
+          submissionType: 'contact',
+          name: cleanName,
+          email: cleanEmail,
+          subject: 'contact submission for Books & Friends',
+          message: `Contact & Salon Dispatch Signup:\n\nName: ${cleanName}\nEmail: ${cleanEmail}\nMessage / Interests:\n${cleanMessage}`,
+        }),
+      ]);
+
+      setDispatchInfo(emailRes);
+      setSubmitted(true);
+      setName('');
+      setEmail('');
+      setMessage('');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -230,10 +260,10 @@ export const ContactPage: React.FC<ContactPageProps> = ({
                 {language === 'en' ? 'Email' : 'E-posta'}
               </span>
               <a
-                href="mailto:edaydogannn@gmail.com"
+                href={`mailto:${CONTACT_EMAIL}`}
                 className="font-mono text-sm font-semibold text-[#C45B38] hover:underline"
               >
-                edaydogannn@gmail.com
+                {CONTACT_EMAIL}
               </a>
             </div>
             <div>
@@ -278,9 +308,16 @@ export const ContactPage: React.FC<ContactPageProps> = ({
               </div>
               <p>
                 {language === 'en'
-                  ? 'Thank you for connecting with Books & Friends. You have been added to our Salon Dispatch.'
-                  : 'Books & Friends ile iletişime geçtiğiniz için teşekkürler. Bülten listemize eklendiniz.'}
+                  ? `Thank you for connecting with Books & Friends. Your note has been sent to ${CONTACT_EMAIL} and added to our Salon Dispatch.`
+                  : `Books & Friends ile iletişime geçtiğiniz için teşekkürler. Notunuz ${CONTACT_EMAIL} adresine iletildi.`}
               </p>
+              {dispatchInfo && dispatchInfo.needsActivation && (
+                <p className="text-[11px] font-mono text-emerald-800">
+                  {language === 'en'
+                    ? `Note: Check ${CONTACT_EMAIL} inbox once to confirm automated relay activation.`
+                    : `Not: Otomatik yönlendirmeyi etkinleştirmek için ${CONTACT_EMAIL} gelen kutusunu onaylayın.`}
+                </p>
+              )}
             </div>
           ) : (
             <form
@@ -332,10 +369,15 @@ export const ContactPage: React.FC<ContactPageProps> = ({
               </div>
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 bg-[#C45B38] hover:bg-[#a94827] text-white text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                disabled={submitting}
+                className="w-full py-2.5 px-4 bg-[#C45B38] hover:bg-[#a94827] disabled:opacity-60 text-white text-xs font-semibold rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Send className="w-3.5 h-3.5" />
-                <span>{language === 'en' ? 'Send & Subscribe' : 'Gönder ve Kaydol'}</span>
+                <span>
+                  {submitting
+                    ? (language === 'en' ? 'Sending...' : 'Gönderiliyor...')
+                    : (language === 'en' ? 'Send & Subscribe' : 'Gönder ve Kaydol')}
+                </span>
               </button>
             </form>
           )}
@@ -390,8 +432,8 @@ export const TermsPage: React.FC<InfoPageBaseProps> = ({ language, onNavigate })
           </h2>
           <p>
             {language === 'en'
-              ? 'Outbound bookstore links (including Amazon TR and Amazon US editions) may use affiliate tags registered to edaydogannn@gmail.com. Qualifying purchases help fund collective library acquisitions at no extra cost to readers.'
-              : 'Kitap satın alma bağlantıları (Amazon TR ve Amazon US), edaydogannn@gmail.com adına kayıtlı satış ortaklığı etiketleri içerebilir ve elde edilen gelir kulüp kütüphanesi için kullanılır.'}
+              ? `Outbound bookstore links (including Amazon TR and Amazon US editions) may use affiliate tags associated with ${CONTACT_EMAIL}. Qualifying purchases help fund collective library acquisitions at no extra cost to readers.`
+              : `Kitap satın alma bağlantıları (Amazon TR ve Amazon US), ${CONTACT_EMAIL} iletişim adresiyle bağlantılı satış ortaklığı etiketleri içerebilir ve elde edilen gelir kulüp kütüphanesi için kullanılır.`}
           </p>
         </section>
 
@@ -401,8 +443,8 @@ export const TermsPage: React.FC<InfoPageBaseProps> = ({ language, onNavigate })
           </h2>
           <p>
             {language === 'en' ? 'Questions regarding these terms may be directed to ' : 'Koşullarla ilgili sorularınız için '}
-            <a href="mailto:edaydogannn@gmail.com" className="text-[#C45B38] underline font-mono text-xs">
-              edaydogannn@gmail.com
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#C45B38] underline font-mono text-xs">
+              {CONTACT_EMAIL}
             </a>
             {language === 'en' ? ' or via our ' : ' adresine veya '}
             <a
@@ -470,8 +512,8 @@ export const PrivacyPage: React.FC<InfoPageBaseProps> = ({ language, onNavigate 
             {language === 'en'
               ? 'You may request access to, correction of, or removal of your newsletter or referral submission at any time by emailing '
               : 'Bülten veya başvuru verilerinizin silinmesini talep etmek için dilediğiniz zaman '}
-            <a href="mailto:edaydogannn@gmail.com" className="text-[#C45B38] underline font-mono text-xs">
-              edaydogannn@gmail.com
+            <a href={`mailto:${CONTACT_EMAIL}`} className="text-[#C45B38] underline font-mono text-xs">
+              {CONTACT_EMAIL}
             </a>
             {language === 'en' ? '.' : ' adresine yazabilir veya '}
             {language === 'tr' && (

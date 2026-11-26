@@ -143,7 +143,7 @@ export async function fetchClubData(): Promise<ClubStorePayload | null> {
     const [books, members, referrals, siteSnap] = await Promise.all([
       readCollection<Book>('books'),
       readCollection<Member>('members'),
-      readCollection<ReferralApplication>('referrals'),
+      readCollection<ReferralApplication>('referrals').catch(() => [] as ReferralApplication[]),
       getDoc(siteRef()),
     ]);
     const payload: ClubStorePayload = {
@@ -364,14 +364,25 @@ export async function saveSiteContentApi(siteContent: SiteContent): Promise<ApiR
 // Referrals
 // ---------------------------------------------------------------------------
 
-export async function addReferralApi(referral: ReferralApplication): Promise<ApiResponse<{ referral: ReferralApplication; referrals: ReferralApplication[] }>> {
+export async function addReferralApi(referral: ReferralApplication): Promise<ApiResponse<{ referral: ReferralApplication; referrals?: ReferralApplication[] }>> {
   try {
     // Negative timestamp => ascending sort shows the newest application first.
     const data = { ...clean(referral), _idx: -Date.now() };
     assertFits('Referral', data);
     await setDoc(doc(db, 'referrals', docKey(referral.id)), data);
-    const lastUpdated = await touchMeta();
-    const result = { success: true, referral, referrals: await readCollection<ReferralApplication>('referrals'), lastUpdated };
+    let lastUpdated = new Date().toISOString();
+    try {
+      lastUpdated = await touchMeta();
+    } catch {
+      // Public visitors may not have write permission on meta/store
+    }
+    let referrals: ReferralApplication[] | undefined;
+    try {
+      referrals = await readCollection<ReferralApplication>('referrals');
+    } catch {
+      // Public visitors cannot list all referrals when PII read rules are restricted to admins
+    }
+    const result = { success: true, referral, referrals, lastUpdated };
     broadcastSync('ADD_REFERRAL', result);
     return result;
   } catch (err: any) {

@@ -37,10 +37,10 @@ export const Footer: React.FC<FooterProps> = ({
                 {language === 'en' ? 'Contact:' : 'İletişim:'}
               </span>
               <a
-                href="mailto:edaydogannn@gmail.com"
+                href="mailto:hello@booksnfriends.com"
                 className="font-mono text-[#C45B38] hover:underline font-medium"
               >
-                edaydogannn@gmail.com
+                hello@booksnfriends.com
               </a>
             </p>
           </div>
