@@ -20,6 +20,7 @@ import {
   Upload,
   Edit3
 } from 'lucide-react';
+import { useCurrentDate, getCurrentMonthYear } from '../utils/dateUtils';
 
 interface BookOfTheMonthSectionProps {
   book: Book;
@@ -40,10 +41,11 @@ export const BookOfTheMonthSection: React.FC<BookOfTheMonthSectionProps> = ({
   onEditBook,
   isStandalonePage = false,
 }) => {
+  const currentDate = useCurrentDate();
   if (!book) return null;
   const canUploadVideo = isAdmin || Boolean(currentUser);
   const t = TRANSLATIONS[language];
-  const displayMonth = language === 'en' ? 'October 2026' : 'Ekim 2026';
+  const displayMonth = getCurrentMonthYear(language, currentDate);
   const title = getBookTitle(book, language);
   const coverUrl = getBookCover(book, language);
   const synopsis = getBookSynopsis(book, language);

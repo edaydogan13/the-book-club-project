@@ -15,6 +15,7 @@ import {
   getBookBinding
 } from '../data/initialData';
 import { translateTextSync, translateTextWithAI } from '../utils/translator';
+import { useCurrentDate, getCurrentMonthYear } from '../utils/dateUtils';
 import { 
   X, 
   ExternalLink, 
@@ -60,6 +61,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
   onRemoveFromMemberShelf,
   memberShelfOwnerName,
 }) => {
+  const currentDate = useCurrentDate();
   const canUploadVideo = isAdmin || Boolean(currentUser);
   const t = TRANSLATIONS[language];
 
@@ -103,7 +105,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
   const quote = getBookQuote(book, language);
   const genre = getBookGenre(book, language);
   const month = getBookMonth(book, language);
-  const displayMonth = language === 'en' ? 'October 2026' : 'Ekim 2026';
+  const displayMonth = getCurrentMonthYear(language, currentDate);
 
   const handleCommentSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,7 +162,8 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
       speaker: videoSpeaker,
       videoUrl: finalUrl,
       notes: videoNotes.trim() || (language === 'en' ? 'Recorded during the monthly salon reflection session.' : 'Aylık salon tartışması sırasında kaydedildi.'),
-      recordedDate: displayMonth,
+      recordedDate: getCurrentMonthYear('tr', currentDate),
+      recordedDateEn: getCurrentMonthYear('en', currentDate),
       duration: '4:20 min'
     });
 
@@ -181,7 +184,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-stone-200 bg-white/80">
           <div className="flex items-center gap-3">
             <span className="font-mono text-xs uppercase tracking-wider text-amber-800 bg-amber-50 px-2.5 py-0.5 rounded-sm border border-amber-200/60 font-semibold">
-              {book.isBookOfMonth ? displayMonth : book.month}
+              {book.isBookOfMonth ? displayMonth : month}
             </span>
             <span className="text-xs text-stone-500">
               {language === 'en' ? 'Suggested by' : 'Öneren'} <strong className="text-stone-800">{book.suggesterName}</strong>

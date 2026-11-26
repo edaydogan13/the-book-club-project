@@ -41,6 +41,7 @@ import {
 import { safeStorage } from './utils/safeStorage';
 import { translateMemberBilingualSync, autoTranslateFields } from './utils/translator';
 import { registerWebMcpTools } from './utils/webmcp';
+import { useCurrentDate, getCurrentMonthName } from './utils/dateUtils';
 
 function parseRouteFromLocation(): { view: PageView; memberId?: string } {
   if (typeof window === 'undefined') return { view: 'home' };
@@ -79,6 +80,7 @@ function getPathForRoute(view: PageView, memberId?: string): string {
 
 export default function App() {
   const initialRoute = parseRouteFromLocation();
+  const currentDate = useCurrentDate();
   // Navigation View: 'home' | 'members' | 'book-of-month' | 'about' | 'contact' | 'terms' | 'privacy'
   const [currentView, setCurrentView] = useState<PageView>(initialRoute.view);
   const [selectedMemberId, setSelectedMemberId] = useState<string>(initialRoute.memberId || 'eda-aydogan');
@@ -1080,7 +1082,7 @@ export default function App() {
                     <div className="mb-6 flex flex-wrap items-center gap-2.5 sm:gap-3 text-xs sm:text-sm">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-[#C45B38]/10 text-[#C45B38] font-mono text-[11px] uppercase tracking-wider font-semibold">
                         <span className="w-1.5 h-1.5 rounded-full bg-[#C45B38] animate-pulse" />
-                        <span>{t.nowReadingLabel} · {language === 'en' ? 'October' : 'Ekim'}</span>
+                        <span>{t.nowReadingLabel} · {getCurrentMonthName(language, currentDate)}</span>
                       </span>
                       <button
                         type="button"

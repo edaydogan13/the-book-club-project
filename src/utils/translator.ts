@@ -324,6 +324,29 @@ export function translateTextSync(text: string, fromLang: Language, toLang: Lang
     }
   }
 
+  // Handle "Month" or "Month YYYY" patterns between EN and TR
+  const EN_MONTH_NAMES = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ];
+  const TR_MONTH_NAMES = [
+    'Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran',
+    'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık',
+  ];
+  const monthYearMatch = trimmed.match(/^([A-Za-zÇĞİÖŞÜçğıöşü]+)(?:\s+(\d{4}))?$/);
+  if (monthYearMatch) {
+    const word = monthYearMatch[1];
+    const yearPart = monthYearMatch[2] ? ` ${monthYearMatch[2]}` : '';
+    if (toLang === 'tr') {
+      const idx = EN_MONTH_NAMES.findIndex((m) => m.toLowerCase() === word.toLowerCase());
+      if (idx !== -1) return `${TR_MONTH_NAMES[idx]}${yearPart}`;
+    } else if (toLang === 'en') {
+      const normalizedWord = word.toLocaleLowerCase('tr-TR');
+      const idx = TR_MONTH_NAMES.findIndex((m) => m.toLocaleLowerCase('tr-TR') === normalizedWord);
+      if (idx !== -1) return `${EN_MONTH_NAMES[idx]}${yearPart}`;
+    }
+  }
+
   return trimmed;
 }
 

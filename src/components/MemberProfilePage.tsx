@@ -41,6 +41,8 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { TactileBookSpine } from './TactileBookSpine';
+import { BookSearchBar } from './BookSearchBar';
+import { BookSearchResult } from '../utils/bookSearch';
 
 const PRESET_AVATARS = [
   { label: 'Cemre Şirin', url: '/members/cemresirin.webp?v=2' },
@@ -205,7 +207,44 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
   const [newBookSynopsis, setNewBookSynopsis] = useState('');
   const [newBookQuote, setNewBookQuote] = useState('');
   const [newBookRating, setNewBookRating] = useState(5);
+  const [newBookBuyLinks, setNewBookBuyLinks] = useState<Book['buyLinks'] | null>(null);
   const [alsoAddToClub, setAlsoAddToClub] = useState(true);
+
+  const handleSelectSearchResultForShelf = (result: BookSearchResult) => {
+    setNewBookTitle(result.title);
+    setNewBookAuthor(result.author);
+    if (result.year) setNewBookYear(result.year);
+    if (result.pages) setNewBookPages(result.pages);
+    if (result.genre) setNewBookGenre(result.genre);
+    if (result.coverUrl) setNewBookCoverUrl(result.coverUrl);
+    if (result.synopsis) {
+      const cleaned = result.synopsis
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;|&apos;/g, "'")
+        .replace(/&nbsp;/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (cleaned) setNewBookSynopsis(cleaned);
+    }
+    setNewBookBuyLinks({
+      tr: {
+        store: 'Amazon TR',
+        url: result.amazonTrUrl,
+        language: 'TR',
+        price: '₺220',
+        affiliateTag: 'edaydogannn-21',
+      },
+      en: {
+        store: 'Amazon Global',
+        url: result.amazonEnUrl,
+        language: 'EN',
+        price: '$18.00',
+        affiliateTag: 'edaydogannn-20',
+      },
+    });
+  };
 
   // Notify parent when inline profile editing starts/stops
   React.useEffect(() => {
@@ -231,6 +270,7 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
       setConfirmDeleteMember(false);
       setIsEditing(false);
       setIsAddingBook(false);
+      setNewBookBuyLinks(null);
       setIsRemoveMode(false);
       setBookFilter('all');
     }
@@ -255,6 +295,7 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
       setConfirmDeleteMember(false);
       setIsEditing(false);
       setIsAddingBook(false);
+      setNewBookBuyLinks(null);
       setIsRemoveMode(false);
       setBookFilter('all');
     }
@@ -461,6 +502,7 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
       month: language === 'en' ? 'Personal Selection' : 'Kişisel Seçki',
       monthEn: 'Personal Selection',
       monthTr: 'Kişisel Seçki',
+      ...(!alsoAddToClub ? { isPersonalExtra: true } : {}),
       coverColor: newBookColor,
       accentColor: '#C45B38',
       spineTextColor: '#FFFFFF',
@@ -469,17 +511,17 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
       coverImageUrlTr: newBookCoverUrl.trim() || undefined,
       coverImageUrlEn: newBookCoverUrl.trim() || undefined,
       rating: newBookRating,
-      buyLinks: {
+      buyLinks: newBookBuyLinks || {
         tr: {
           store: 'Amazon TR',
-          url: `https://www.amazon.com.tr/s?k=${encodeURIComponent(titleTr)}&tag=edaydogannn-21`,
+          url: `https://www.amazon.com.tr/s?k=${encodeURIComponent(titleTr)}&i=stripbooks&tag=edaydogannn-21`,
           language: 'TR',
           price: '₺220',
           affiliateTag: 'edaydogannn-21'
         },
         en: {
           store: 'Amazon Global',
-          url: `https://www.amazon.com/s?k=${encodeURIComponent(titleEn)}&tag=edaydogannn-20`,
+          url: `https://www.amazon.com/s?k=${encodeURIComponent(titleEn)}&i=stripbooks&tag=edaydogannn-20`,
           language: 'EN',
           price: '$18.00',
           affiliateTag: 'edaydogannn-20'
@@ -524,6 +566,7 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
     setNewBookSynopsis('');
     setNewBookCoverUrl('');
     setNewBookQuote('');
+    setNewBookBuyLinks(null);
     setNewBookPages(320);
     setNewBookYear(2025);
 
@@ -1444,6 +1487,14 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
               </button>
             </div>
 
+            <BookSearchBar language={language} onSelectBookResult={handleSelectSearchResultForShelf} />
+
+            <div className="flex items-center gap-3 text-[11px] font-mono uppercase tracking-wider text-stone-400">
+              <div className="flex-1 h-px bg-stone-200" />
+              <span>{language === 'en' ? 'Or enter book details manually' : 'Veya kitap bilgilerini manuel girin'}</span>
+              <div className="flex-1 h-px bg-stone-200" />
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-stone-700 mb-1">
@@ -1517,10 +1568,10 @@ export const MemberProfilePage: React.FC<MemberProfilePageProps> = ({
               </label>
               <div className="flex gap-2">
                 <input
-                  type="url"
+                  type="text"
                   value={newBookCoverUrl}
                   onChange={(e) => setNewBookCoverUrl(e.target.value)}
-                  placeholder="https://... or select a preset below"
+                  placeholder="https://... or /covers/... or select a preset below"
                   className="flex-1 text-xs p-2.5 bg-stone-50 border border-stone-300 rounded-lg focus:outline-none focus:border-[#C45B38]"
                 />
                 {newBookCoverUrl && (

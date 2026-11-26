@@ -3,6 +3,9 @@ import { Book, Member } from '../types';
 import { Language, TRANSLATIONS } from '../translations';
 import { X, Save, Trash2, Star, BookOpen, Image as ImageIcon, Sparkles, Check, Globe } from 'lucide-react';
 import { translateTextSync, translateTextWithAI } from '../utils/translator';
+import { getCurrentMonthYear } from '../utils/dateUtils';
+import { BookSearchResult } from '../utils/bookSearch';
+import { BookSearchBar } from './BookSearchBar';
 
 interface BookEditModalProps {
   isOpen: boolean;
@@ -63,13 +66,14 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
   const [pages, setPages] = useState(300);
   const [suggesterName, setSuggesterName] = useState('');
   const [suggesterId, setSuggesterId] = useState('');
-  const [month, setMonth] = useState('October 2026');
+  const [month, setMonth] = useState(() => getCurrentMonthYear(language));
   const [isBookOfMonth, setIsBookOfMonth] = useState(false);
   const [coverColor, setCoverColor] = useState('#2C3E50');
   const [accentColor, setAccentColor] = useState('#E67E22');
   const [spineTextColor, setSpineTextColor] = useState('#FFFFFF');
   const [rating, setRating] = useState(5);
   const [themesStr, setThemesStr] = useState('');
+  const [selectedBuyLinks, setSelectedBuyLinks] = useState<Book['buyLinks'] | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -101,6 +105,7 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
       setSpineTextColor(bookToEdit.spineTextColor || '#FFFFFF');
       setRating(bookToEdit.rating || 5);
       setThemesStr((bookToEdit.themes || []).join(', '));
+      setSelectedBuyLinks(bookToEdit.buyLinks || null);
     } else {
       // New book defaults
       setTitleTr('');
@@ -120,13 +125,14 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
       setPages(320);
       setSuggesterName(members[0]?.name || 'Eda Aydoğan');
       setSuggesterId(members[0]?.id || 'eda-aydogan');
-      setMonth(language === 'en' ? 'November 2026' : 'Kasım 2026');
+      setMonth(getCurrentMonthYear(language));
       setIsBookOfMonth(false);
       setCoverColor('#1A365D');
       setAccentColor('#F6AD55');
       setSpineTextColor('#FFFFFF');
       setRating(5);
       setThemesStr('Memory, Identity, Society');
+      setSelectedBuyLinks(null);
     }
   }, [bookToEdit, isOpen, members, language]);
 
@@ -139,6 +145,65 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
       setSuggesterId(selected.id);
       setSuggesterName(selected.name);
     }
+  };
+
+  const handleSelectSearchResult = (result: BookSearchResult) => {
+    const cleanedSynopsis = result.synopsis
+      ? result.synopsis
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;|&apos;/g, "'")
+          .replace(/&nbsp;/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+      : '';
+
+    setAuthor(result.author);
+    if (result.year) setYear(result.year);
+    if (result.pages) setPages(result.pages);
+    if (result.coverUrl) {
+      setCoverImageUrlTr(result.coverUrl);
+      setCoverImageUrlEn(result.coverUrl);
+    }
+    if (result.genre) {
+      setGenreTr(translateTextSync(result.genre, 'en', 'tr'));
+      setGenreEn(translateTextSync(result.genre, 'tr', 'en'));
+      setThemesStr(result.genre);
+    }
+
+    if (result.language === 'tr') {
+      setTitleTr(result.title);
+      setTitleEn(translateTextSync(result.title, 'tr', 'en'));
+      setOriginalTitle(result.subtitle ? result.title : '');
+      if (cleanedSynopsis) {
+        setSynopsisTr(cleanedSynopsis);
+        setSynopsisEn(translateTextSync(cleanedSynopsis, 'tr', 'en'));
+      }
+    } else {
+      setTitleEn(result.title);
+      setTitleTr(translateTextSync(result.title, 'en', 'tr'));
+      setOriginalTitle(result.title);
+      if (cleanedSynopsis) {
+        setSynopsisEn(cleanedSynopsis);
+        setSynopsisTr(translateTextSync(cleanedSynopsis, 'en', 'tr'));
+      }
+    }
+
+    setSelectedBuyLinks({
+      tr: {
+        store: 'Amazon TR',
+        url: result.amazonTrUrl,
+        language: 'TR',
+        affiliateTag: 'edaydogannn-21',
+      },
+      en: {
+        store: 'Amazon',
+        url: result.amazonEnUrl,
+        language: 'EN',
+        affiliateTag: 'edaydogannn-20',
+      },
+    });
   };
 
   // 1-Click Auto-Translate from one language to the other
@@ -245,16 +310,16 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
       coverImageUrlEn: finalCoverEn,
       rating: rating,
       themes: themes.length > 0 ? themes : ['Literature', 'Club Selection'],
-      buyLinks: bookToEdit?.buyLinks || {
+      buyLinks: selectedBuyLinks || bookToEdit?.buyLinks || {
         tr: {
           store: 'Amazon TR',
-          url: `https://www.amazon.com.tr/s?k=${encodeURIComponent(finalTitleTr)}`,
+          url: `https://www.amazon.com.tr/s?k=${encodeURIComponent(finalTitleTr)}&i=stripbooks&tag=edaydogannn-21`,
           language: 'TR',
           affiliateTag: 'edaydogannn-21'
         },
         en: {
           store: 'Amazon',
-          url: `https://www.amazon.com/s?k=${encodeURIComponent(finalTitleEn)}`,
+          url: `https://www.amazon.com/s?k=${encodeURIComponent(finalTitleEn)}&i=stripbooks&tag=edaydogannn-20`,
           language: 'EN',
           affiliateTag: 'edaydogannn-20'
         }
@@ -363,6 +428,17 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 flex-1">
+          {isNew && (
+            <>
+              <BookSearchBar language={language} onSelectBookResult={handleSelectSearchResult} />
+              <div className="flex items-center gap-3 text-[11px] font-mono uppercase tracking-wider text-stone-400">
+                <div className="flex-1 h-px bg-stone-200" />
+                <span>{language === 'en' ? 'Or enter book details manually' : 'Veya kitap bilgilerini manuel girin'}</span>
+                <div className="flex-1 h-px bg-stone-200" />
+              </div>
+            </>
+          )}
+
           {/* Currently Reading / Book of the Month highlight toggle */}
           <div className="p-3.5 bg-amber-50/80 border border-amber-200 rounded-xl flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -541,7 +617,7 @@ export const BookEditModal: React.FC<BookEditModalProps> = ({
                 type="text"
                 value={month}
                 onChange={(e) => setMonth(e.target.value)}
-                placeholder="e.g. October 2026"
+                placeholder={`e.g. ${getCurrentMonthYear(language)}`}
                 className="w-full text-xs p-2.5 bg-white border border-stone-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-stone-500"
               />
             </div>
